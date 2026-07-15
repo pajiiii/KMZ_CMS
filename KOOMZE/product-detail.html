@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>产品详情 - KOOMZE</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    /* ========== Detail Page — Layout ========== */
+    .container { max-width:900px; margin:0 auto; padding:30px 24px 60px; padding-top: calc(30px + var(--topbar-h, 56px)); position:relative; z-index:1; text-align:center; }
+    .main-image { width:100%; max-width:600px; margin:0 auto 32px; border-radius:0; overflow:hidden; box-shadow:0 12px 40px var(--shadow); }
+    .main-image img { width:100%; border-radius:0; object-fit:contain; display:block; background:#f5f5f7; }
+    h1 { font-size:1.8rem; margin-bottom:12px; font-weight:800; }
+    .back-link { display:inline-block; margin-top:40px; color:var(--theme); text-decoration:none; font-weight:600; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+    .back-link:hover { transform:translateX(-4px); }
+
+    /* ========== Detail Page — Buy Button & Hover Popup ========== */
+    .buy-section { position:relative; display:inline-block; margin-top:24px; }
+    .buy-trigger {
+      display:inline-flex; align-items:center; gap:8px;
+      background:var(--theme); color:#fff; padding:16px 44px; border-radius:8px;
+      font-weight:700; font-size:1.05rem; cursor:pointer; border:none;
+      box-shadow:0 6px 24px var(--theme-glow);
+      transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      position:relative;
+    }
+    .buy-trigger:hover { background:var(--theme2); box-shadow:0 8px 32px var(--theme-glow); transform:translateY(-2px); }
+    .buy-popup {
+      position:absolute; bottom:calc(100% + 16px); left:50%; transform:translateX(-50%);
+      background:var(--card); border:1px solid var(--border); border-radius:12px;
+      padding:12px 8px; display:flex; gap:10px;
+      box-shadow:0 16px 48px rgba(0,0,0,0.25);
+      opacity:0; visibility:hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      transform:translateX(-50%) translateY(8px);
+      white-space:nowrap; z-index:100;
+    }
+    .buy-trigger:hover .buy-popup,
+    .buy-popup:hover { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+    .buy-popup::after {
+      content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+      border:8px solid transparent; border-top-color:var(--card);
+    }
+    .buy-platform {
+      display:flex; flex-direction:column; align-items:center; gap:6px;
+      padding:14px 20px; border-radius:10px; text-decoration:none;
+      font-weight:600; font-size:0.85rem; color:var(--text);
+      transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      min-width:80px; background:var(--bg); border:1px solid transparent;
+    }
+    .buy-platform:hover { transform:translateY(-4px); }
+    .buy-platform.taobao:hover { background:#ff5000; color:#fff; border-color:#ff5000; box-shadow:0 8px 24px rgba(255,80,0,0.35); }
+    .buy-platform.jd:hover { background:#e2231a; color:#fff; border-color:#e2231a; box-shadow:0 8px 24px rgba(226,35,26,0.35); }
+    .buy-platform.pdd:hover { background:#e02e24; color:#fff; border-color:#e02e24; box-shadow:0 8px 24px rgba(224,46,36,0.35); }
+    .buy-platform-icon { font-size:1.6rem; line-height:1; }
+
+    /* ========== Detail Page — Entry Animations ========== */
+    .main-image { animation:fadeInUp 0.5s ease both; animation-delay:0.1s; }
+    h1 { animation:fadeInUp 0.5s ease both; animation-delay:0.2s; }
+    .buy-section { animation:fadeInUp 0.5s ease both; animation-delay:0.3s; }
+    .back-link { animation:fadeIn 0.5s ease both; animation-delay:0.4s; }
+  </style>
+</head>
+<body>
+
+<div class="top-bar scrolled" id="topBar">
+  <a href="Main.html" class="logo-link"><img class="logo-img" src="Pictures/components/KOOMZE.png" alt="KOOMZE"></a>
+  <div class="nav-links">
+    <a href="Main.html" class="nav-link"><img class="nav-icon" src="Pictures/components/主页.svg" alt=""><span class="lang-zh">主页</span><span class="lang-tw">首頁</span><span class="lang-en">Home</span></a>
+    <div class="dropdown">
+      <a href="Product.html?cat=keyboard" class="dropdown-toggle"><span class="lang-zh">键盘</span><span class="lang-tw">鍵盤</span><span class="lang-en">Keyboards</span></a>
+      <div class="dropdown-menu" data-category="keyboard"></div>
+    </div>
+    <div class="dropdown">
+      <a href="Product.html?cat=mouse" class="dropdown-toggle"><span class="lang-zh">鼠标</span><span class="lang-tw">滑鼠</span><span class="lang-en">Mice</span></a>
+      <div class="dropdown-menu" data-category="mouse"></div>
+    </div>
+    <div class="dropdown">
+      <a href="Product.html?cat=earphone" class="dropdown-toggle"><span class="lang-zh">耳机</span><span class="lang-tw">耳機</span><span class="lang-en">Headsets</span></a>
+      <div class="dropdown-menu" data-category="earphone"></div>
+    </div>
+    <div class="dropdown">
+      <a href="Product.html?cat=speaker" class="dropdown-toggle"><span class="lang-zh">音箱</span><span class="lang-tw">喇叭</span><span class="lang-en">Speakers</span></a>
+      <div class="dropdown-menu" data-category="speaker"></div>
+    </div>
+    <div class="dropdown">
+      <a href="Product.html?cat=camera" class="dropdown-toggle"><span class="lang-zh">相机</span><span class="lang-tw">相機</span><span class="lang-en">Camera</span></a>
+      <div class="dropdown-menu" data-category="camera"></div>
+    </div>
+    <a href="Product.html?view=driver" class="nav-link"><img class="nav-icon" src="Pictures/components/驱动.svg" alt=""><span class="lang-zh">驱动支持</span><span class="lang-tw">驅動支援</span><span class="lang-en">Drivers</span></a>
+  </div>
+  <label class="lang-switch" title="切换语言">
+    <img class="lang-icon" src="Pictures/components/多语言.svg" alt="语言">
+    <select class="lang-select" id="langSelect">
+    <option value="zh-CN">简体中文</option>
+    <option value="zh-TW">繁體中文</option>
+    <option value="en">ENGLISH</option>
+  </select>
+</label>
+</div>
+
+<div class="container">
+  <div class="main-image"><img id="mainImage" src="" alt="产品主图"></div>
+  <h1 id="detail-name"></h1>
+  <div class="buy-section">
+    <div class="buy-trigger">
+      <span class="lang-zh">🛒 立即购买</span><span class="lang-tw">🛒 立即購買</span><span class="lang-en">🛒 Buy Now</span>
+      <div class="buy-popup">
+        <a href="#" class="buy-platform taobao" target="_blank" id="linkTaobao"><span class="buy-platform-icon">🛍️</span>淘宝</a>
+        <a href="#" class="buy-platform jd" target="_blank" id="linkJd"><span class="buy-platform-icon">📦</span>京东</a>
+        <a href="#" class="buy-platform pdd" target="_blank" id="linkPdd"><span class="buy-platform-icon">💥</span>拼多多</a>
+      </div>
+    </div>
+  </div>
+  <br>
+  <a href="Product.html" class="back-link">← <span class="lang-zh">返回产品列表</span><span class="lang-tw">返回產品列表</span><span class="lang-en">Back to Products</span></a>
+</div>
+
+<script src="common.js"></script>
+<script>
+  // ========== 兜底数据 ==========
+  const PRODUCTS_FALLBACK = [
+    { pid:"H71",  img:"Pictures/白底图/H71键盘.png",      links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"H71键盘",     name_tw:"H71鍵盤",     name_en:"H71" },
+    { pid:"S6",   img:"Pictures/白底图/S6音响.png",       links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"S6 音箱",     name_tw:"S6 音箱",     name_en:"S6 Speaker" },
+    { pid:"S9",   img:"Pictures/白底图/S9音响.png",       links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"S9 音箱",     name_tw:"S9 音箱",     name_en:"S9 Speaker" },
+    { pid:"H75",  img:"Pictures/白底图/H75键盘.png",      links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"H75键盘",     name_tw:"H75鍵盤",     name_en:"H75" },
+    { pid:"H81",  img:"Pictures/白底图/H81键盘.png",      links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"H81键盘",     name_tw:"H81鍵盤",     name_en:"H81" },
+    { pid:"H98",  img:"Pictures/白底图/H98键盘.png",      links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"H98键盘",     name_tw:"H98鍵盤",     name_en:"H98" },
+    { pid:"H102", img:"Pictures/白底图/102键盘.png",      links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"H102键盘",    name_tw:"H102鍵盤",    name_en:"H102" },
+    { pid:"CD",   img:"Pictures/白底图/CD机.png",         links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"科曼者CD机",  name_tw:"科曼者CD機",  name_en:"KOOMZE CD Player" },
+    { pid:"K1",   img:"Pictures/白底图/K1头戴式耳机.png",  links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"K1 耳机",     name_tw:"K1 耳機",     name_en:"K1 Headset" },
+    { pid:"75",   img:"Pictures/白底图/75键盘.png",       links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"75键盘",      name_tw:"75鍵盤",      name_en:"75 Keyboard" },
+    { pid:"K9pAI",img:"Pictures/白底图/K9＋AI款.png",     links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"K9pAI 耳机",  name_tw:"K9pAI 耳機",  name_en:"K9pAI Headset" },
+    { pid:"M7",   img:"Pictures/白底图/M7鼠标.png",       links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"M7 鼠标",     name_tw:"M7 滑鼠",     name_en:"M7 Mouse" },
+    { pid:"C25",  img:"Pictures/白底图/CCD相机.png",      links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"C25 相机",     name_tw:"C25 相機",     name_en:"C25 Camera" }
+  ];
+
+  let PRODUCTS = [];
+  let product = null;
+  let productNameMap = {};
+  const urlParams = new URLSearchParams(window.location.search);
+  const rawId = urlParams.get('id');
+
+  // 获取产品名称映射
+  async function buildProductNameMap() {
+    try {
+      const res = await fetch('/api/content/product');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          productNameMap = {};
+          data.forEach(p => { productNameMap[p.productId] = p.name; });
+        }
+      }
+    } catch(e) {}
+  }
+
+  function resolveName(pid, fallback) {
+    return productNameMap[pid] || fallback || pid || '未知产品';
+  }
+
+  // 从 API 拉产品详情，失败或无数据返回 null
+  async function fetchDetailFromAPI() {
+    try {
+      const res = await fetch('/api/content/product-detail');
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data || data.length === 0) return null;
+      // 映射 API 数据 → 统一格式
+      return data.map(item => {
+        const pid = item.productId || '';
+        const name = resolveName(pid, pid);
+        return {
+          id: pid,
+          pid: pid,
+          img: item.image,
+          links: {
+            taobao: item.buyLink1 || '#',
+            jd: item.buyLink2 || '#',
+            pdd: item.buyLink3 || '#',
+            link4: item.buyLink4 || '',
+            link5: item.buyLink5 || ''
+          },
+          name_zh: name,
+          name_tw: name,
+          name_en: name
+        };
+      });
+    } catch (e) { console.log('API 不可用，使用本地兜底数据'); return null; }
+  }
+
+  function loadProduct() {
+    product = PRODUCTS.find(p => String(p.id || p.pid) === String(rawId));
+    if (!product) { document.querySelector('.container').innerHTML='<p style="text-align:center;padding:60px;">产品不存在</p><a href="Main.html">返回首页</a>'; return false; }
+    return true;
+  }
+
+  function getProductName(p) { return p['name_'+(currentLang==='zh-CN'?'zh':currentLang==='zh-TW'?'tw':'en')]; }
+
+  function updateContent() {
+    document.getElementById('detail-name').innerText = getProductName(product);
+    document.getElementById('mainImage').src = product.img;
+    document.getElementById('mainImage').alt = getProductName(product);
+    // 动态显示购买链接：有几个显示几个
+    const links = product.links || {};
+    const platforms = [
+      { id: 'linkTaobao', href: links.taobao, label: '淘宝', icon: '🛍️' },
+      { id: 'linkJd',     href: links.jd,     label: '京东', icon: '📦' },
+      { id: 'linkPdd',    href: links.pdd,    label: '拼多多', icon: '💥' }
+    ];
+    let hasLink = false;
+    platforms.forEach(p => {
+      const el = document.getElementById(p.id);
+      if (el) {
+        if (p.href && p.href !== '#') { el.href = p.href; el.style.display = 'flex'; hasLink = true; }
+        else { el.style.display = 'none'; }
+      }
+    });
+    // 如果没有购买链接，隐藏购买按钮
+    const buySection = document.querySelector('.buy-section');
+    if (buySection) buySection.style.display = hasLink ? 'inline-block' : 'none';
+  }
+
+  async function init() {
+    await buildProductNameMap();
+    const apiData = await fetchDetailFromAPI();
+    PRODUCTS = apiData || PRODUCTS_FALLBACK;
+    if (loadProduct()) {
+      initCommon(function() { updateContent(); });
+      updateContent();
+    }
+    initDynamicNav();
+    initFooterSocial();
+  }
+  init();
+</script>
+
+<div class="footer">
+  <div class="footer-links">
+    <a href="#"><span class="lang-zh">隐私政策</span><span class="lang-tw">隱私政策</span><span class="lang-en">Privacy</span></a>
+    <a href="#"><span class="lang-zh">条款条约</span><span class="lang-tw">條款條約</span><span class="lang-en">Terms</span></a>
+    <a href="#"><span class="lang-zh">意见反馈</span><span class="lang-tw">意見反饋</span><span class="lang-en">Feedback</span></a>
+    <a href="#"><img class="footer-icon" src="Pictures/components/关于我们.svg" alt=""><span class="lang-zh">关于我们</span><span class="lang-tw">關於我們</span><span class="lang-en">About</span></a>
+  </div>
+  <div id="footerSocial"></div>
+  <div style="margin-top:12px;">© 2025 KOOMZE. All rights reserved.</div>
+</div>
+
+</body>
+</html>

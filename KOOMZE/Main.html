@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>KOOMZE 科曼者 | 电竞外设官网</title>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        /* ========== Main Page — Hero Wrapper ========== */
+        .hero-section { width: 100%; display: flex; flex-direction: column; position: relative; z-index: 1; }
+
+        /* ========== Main Page — Carousel ========== */
+        .carousel-section { width: 100%; position: relative; z-index: 1; }
+        .carousel-window {
+            width: 100%; overflow: hidden; border-radius: 0;
+            border: 1px solid var(--border); background: var(--card);
+            box-shadow: 0 24px 60px rgba(0,0,0,0.12);
+        }
+        .carousel-track { display: flex; transition: transform 0.6s ease; }
+        .carousel-slide { flex: 0 0 100%; position: relative; aspect-ratio: 21 / 9; }
+        .carousel-slide img {
+            width: 100%; height: 100%; object-fit: cover; display: block;
+            transition: transform 0.6s ease;
+        }
+        .carousel-slide:hover img { transform: scale(1.02); }
+        .carousel-overlay {
+            position: absolute; inset: 0; display: flex; flex-direction: column;
+            justify-content: flex-end; padding: 36px 34px 40px;
+            background: linear-gradient(180deg, transparent 42%, rgba(8, 9, 13, 0.82) 94%);
+            opacity: 1; transform: translateY(0);
+            pointer-events: auto;
+        }
+        .carousel-title {
+            color: #fff; font-size: clamp(1.8rem, 3vw, 2.8rem); font-weight: 800;
+            margin-bottom: 16px; letter-spacing: 0.5px;
+        }
+        .carousel-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 8px 18px; border-radius: 6px; border: none;
+            background: transparent; color: #fff; text-decoration: none;
+            font-weight: 500; letter-spacing: 0.3px; font-size: 0.85rem;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .carousel-btn img { width: 18px; height: 18px; object-fit: contain; filter: brightness(0) invert(1); }
+        .carousel-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+        .carousel-desc { font-size: 0.85rem; color: rgba(255,255,255,0.75); margin-bottom: 10px; font-weight: 400; }
+        .carousel-indicators { display: flex; justify-content: center; gap: 10px; margin-top: 16px; }
+        .carousel-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 40px; height: 40px; border: none; border-radius: 50%;
+            background: transparent; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), opacity 0.25s ease;
+            z-index: 2; opacity: 0.7;
+        }
+        .carousel-arrow img { width: 36px; height: 36px; object-fit: contain; filter: brightness(0) invert(1) drop-shadow(0 1px 3px rgba(0,0,0,0.4)); }
+        .carousel-arrow:hover { opacity: 1; transform: translateY(-50%) scale(1.15); }
+        .carousel-arrow--prev { left: 12px; }
+        .carousel-arrow--next { right: 12px; }
+        .carousel-indicator {
+            width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--border2);
+            background: rgba(0,0,0,0.08); cursor: pointer;
+            transition: transform 0.25s ease, background 0.25s ease;
+        }
+        .carousel-indicator.active { background: var(--text); transform: scale(1.15); }
+
+        /* ========== Main Page — Feature Cards ========== */
+        .feature-section {
+            width: 100%; padding: 28px 5% 42px; position: relative; z-index: 1;
+            display: grid; gap: 18px;
+        }
+        .feature-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+        .feature-card {
+            position: relative; display: block; overflow: hidden; border-radius: 0;
+            min-height: 260px; border: 1px solid var(--border); background: var(--card);
+        }
+        .feature-card img {
+            width: 100%; height: 100%; object-fit: cover; display: block;
+            transition: transform 0.5s ease;
+        }
+        .feature-card:hover img { transform: scale(1.05); }
+        .feature-card-overlay {
+            position: absolute; inset: 0; display: flex; flex-direction: column;
+            justify-content: flex-start; align-items: center; padding: 5% 20px 20px; pointer-events: none;
+            background: linear-gradient(180deg, transparent 35%, rgba(8,9,13,0.9) 100%);
+        }
+        .feature-title {
+            color: #fff; font-size: clamp(2.2rem, 2.0vw, 3rem); font-weight: 300;
+            letter-spacing: 0.5px; text-align: center; pointer-events: auto; max-width: 90%; line-height: 1.3;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+        }
+        .feature-card-info {
+            display: flex; flex-direction: column; gap: 10px; width: 100%; pointer-events: auto;
+        }
+        .feature-card-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            margin-top: auto; margin-bottom: 4px;
+            padding: 8px 18px; border-radius: 6px; border: none;
+            background: transparent; color: #fff; font-weight: 500;
+            font-size: 0.85rem; letter-spacing: 0.4px; text-decoration: none; pointer-events: auto;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .feature-card-btn img { width: 17px; height: 17px; object-fit: contain; filter: brightness(0) invert(1); }
+        .feature-card-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+
+        /* ========== Main Page — Media Queries & Animations ========== */
+        @media (max-width: 760px) {
+            .feature-grid { grid-template-columns: 1fr; }
+            .feature-section { padding: 20px 4% 32px; }
+        }
+
+        /* ========== Main Page — Page Loader ========== */
+        .page-loader {
+            position: fixed; inset: 0; z-index: 10000;
+            background: #ffffff;
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1), visibility 1.2s;
+        }
+        .page-loader.hidden {
+            opacity: 0; visibility: hidden; pointer-events: none;
+        }
+        .loader-image {
+            max-width: 80%;
+            max-height: 50%;
+            object-fit: contain;
+            animation: loaderFadeIn 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes loaderFadeIn {
+            0%   { opacity: 0; transform: scale(0.92); }
+            30%  { opacity: 1; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .carousel-section { animation: fadeIn 0.6s ease both; }
+        .feature-card { animation: fadeInUp 0.5s ease both; }
+        .feature-card:nth-child(1){animation-delay:0.05s} .feature-card:nth-child(2){animation-delay:0.1s}
+        .feature-card:nth-child(3){animation-delay:0.15s} .feature-card:nth-child(4){animation-delay:0.2s}
+        .feature-card:nth-child(5){animation-delay:0.25s} .feature-card:nth-child(6){animation-delay:0.3s}
+        .feature-card:nth-child(7){animation-delay:0.35s} .feature-card:nth-child(8){animation-delay:0.4s}
+    </style>
+</head>
+<body>
+
+<div class="page-loader" id="pageLoader">
+    <img class="loader-image" src="KOOMZE_START.png" alt="KOOMZE" />
+</div>
+
+<div class="top-bar" id="topBar">
+    <a href="Main.html" class="logo-link">
+        <img class="logo-img" src="Pictures/components/KOOMZE.png" alt="KOOMZE">
+    </a>
+    <div class="nav-links">
+        <a href="Main.html" class="nav-link active"><img class="nav-icon" src="Pictures/components/主页.svg" alt=""><span class="lang-zh">主页</span><span class="lang-tw">首頁</span><span class="lang-en">Home</span></a>
+        <div class="dropdown">
+            <a href="Product.html?cat=keyboard" class="dropdown-toggle"><span class="lang-zh">键盘</span><span class="lang-tw">鍵盤</span><span class="lang-en">Keyboards</span></a>
+            <div class="dropdown-menu" data-category="keyboard"></div>
+        </div>
+        <div class="dropdown">
+            <a href="Product.html?cat=mouse" class="dropdown-toggle"><span class="lang-zh">鼠标</span><span class="lang-tw">滑鼠</span><span class="lang-en">Mice</span></a>
+            <div class="dropdown-menu" data-category="mouse"></div>
+        </div>
+        <div class="dropdown">
+            <a href="Product.html?cat=earphone" class="dropdown-toggle"><span class="lang-zh">耳机</span><span class="lang-tw">耳機</span><span class="lang-en">Headsets</span></a>
+            <div class="dropdown-menu" data-category="earphone"></div>
+        </div>
+        <div class="dropdown">
+            <a href="Product.html?cat=speaker" class="dropdown-toggle"><span class="lang-zh">音箱</span><span class="lang-tw">喇叭</span><span class="lang-en">Speakers</span></a>
+            <div class="dropdown-menu" data-category="speaker"></div>
+        </div>
+        <div class="dropdown">
+            <a href="Product.html?cat=camera" class="dropdown-toggle"><span class="lang-zh">相机</span><span class="lang-tw">相機</span><span class="lang-en">Camera</span></a>
+            <div class="dropdown-menu" data-category="camera"></div>
+        </div>
+        <a href="Product.html?view=driver" class="nav-link"><img class="nav-icon" src="Pictures/components/驱动.svg" alt=""><span class="lang-zh">驱动支持</span><span class="lang-tw">驅動支援</span><span class="lang-en">Drivers</span></a>
+    </div>
+    <div class="top-right">
+        <label class="lang-switch" title="切换语言">
+            <img class="lang-icon" src="Pictures/components/多语言.svg" alt="语言">
+            <select class="lang-select" id="langSelect">
+            <option value="zh-CN">简体中文</option>
+            <option value="zh-TW">繁體中文</option>
+            <option value="en">ENGLISH</option>
+        </select>
+    </div>
+</div>
+
+<div class="hero-section" id="heroSection">
+    <div class="carousel-section">
+        <div class="carousel-window" id="carouselWindow">
+            <div class="carousel-track" id="carouselTrack"></div>
+            <button class="carousel-arrow carousel-arrow--prev" id="carouselPrev" aria-label="Previous slide"><img src="Pictures/components/左 左.svg" alt="上一张"></button>
+            <button class="carousel-arrow carousel-arrow--next" id="carouselNext" aria-label="Next slide"><img src="Pictures/components/右 右.svg" alt="下一张"></button>
+        </div>
+        <div class="carousel-indicators" id="carouselIndicators"></div>
+    </div>
+</div>
+<div class="feature-section">
+    <div class="feature-grid" id="featureGrid"></div>
+</div>
+<div class="footer">
+    <div class="footer-links">
+        <a href="#"><span class="lang-zh">隐私政策</span><span class="lang-tw">隱私政策</span><span class="lang-en">Privacy</span></a>
+        <a href="#"><span class="lang-zh">条款条约</span><span class="lang-tw">條款條約</span><span class="lang-en">Terms</span></a>
+        <a href="#"><span class="lang-zh">意见反馈</span><span class="lang-tw">意見反饋</span><span class="lang-en">Feedback</span></a>
+        <a href="#"><img class="footer-icon" src="Pictures/components/关于我们.svg" alt=""><span class="lang-zh">关于我们</span><span class="lang-tw">關於我們</span><span class="lang-en">About</span></a>
+    </div>
+    <div id="footerSocial"></div>
+    <div style="margin-top:12px;">© 2025 KOOMZE. All rights reserved.</div>
+</div>
+
+<script src="common.js"></script>
+<script>
+    // ========== 数据获取层 ==========
+    // 优先从 API 加载，失败或无数据时用硬编码兜底
+    // 兜底数据格式：{ pid: 产品ID, img, title, description }
+    const CAROUSEL_FALLBACK = [
+        { pid: "H75", img: "Pictures/官网长图/H75.png",    title: "H75键盘", description: "" },
+        { pid: "M7",  img: "Pictures/官网长图/画板 1.png",  title: "M7鼠标",  description: "" },
+        { pid: "K9pAI",img: "Pictures/官网长图/画板 2.png",  title: "K9pAI耳机",description: "" },
+        { pid: "S9",  img: "Pictures/官网长图/画板 3.png",  title: "S9音箱",  description: "" },
+        { pid: "CD",  img: "Pictures/官网长图/画板 4.png",  title: "CD机",    description: "" }
+    ];
+    const FEATURES_FALLBACK = [
+        { pid: "C25", img: "Pictures/官网小标签图/CCD相机.png",       title: "C25相机" },
+        { pid: "CD",  img: "Pictures/官网小标签图/CD机.png",          title: "CD机" },
+        { pid: "H75", img: "Pictures/官网小标签图/H75键盘.png",       title: "H75键盘" },
+        { pid: "K1",  img: "Pictures/官网小标签图/K1头戴式耳机.png",   title: "K1耳机" },
+        { pid: "K9pAI",img: "Pictures/官网小标签图/K9＋AI款.png",      title: "K9pAI耳机" },
+        { pid: "M7",  img: "Pictures/官网小标签图/M7鼠标.png",        title: "M7鼠标" },
+        { pid: "S6",  img: "Pictures/官网小标签图/S6.png",           title: "S6音箱" },
+        { pid: "S9",  img: "Pictures/官网小标签图/S9.png",           title: "S9音箱" }
+    ];
+
+    let CAROUSEL_ITEMS = [];
+    let CAROUSEL_REAL_SLIDE_COUNT = 0;
+    let productNameMap = {}; // productId → name
+
+    async function fetchFromAPI(endpoint) {
+        try {
+            const res = await fetch(endpoint);
+            if (!res.ok) return null;
+            const data = await res.json();
+            return (data && data.length > 0) ? data : null;
+        } catch (e) { console.log('API 不可用，使用本地兜底数据: ' + endpoint); return null; }
+    }
+
+    // 构建 productId → 产品名称 映射表
+    async function buildProductNameMap() {
+        const products = await fetchFromAPI('/api/content/product');
+        if (products) {
+            productNameMap = {};
+            products.forEach(p => { productNameMap[p.productId] = p.name; });
+        }
+    }
+
+    // 通过 productId 获取产品名称，兜底使用 item 自带 title
+    function resolveName(item, fallbackTitle) {
+        const pid = item.productId || item.pid || '';
+        return productNameMap[pid] || fallbackTitle || pid || 'KOOMZE';
+    }
+
+    // 初始化所有数据
+    async function initData() {
+        const [carouselData, featuresData] = await Promise.all([
+            fetchFromAPI('/api/content/home-carousel'),
+            fetchFromAPI('/api/content/home-tag')
+        ]);
+        await buildProductNameMap();
+
+        // 轮播数据：API 数据 → 统一格式，名称通过 productId 查找
+        if (carouselData) {
+            CAROUSEL_ITEMS = carouselData.map(item => ({
+                id: item._id,
+                pid: item.productId,
+                img: item.image,
+                title: resolveName(item, ''),
+                description: item.description || '',
+                link: 'product-detail.html?id=' + encodeURIComponent(item.productId || '')
+            }));
+        } else {
+            CAROUSEL_ITEMS = CAROUSEL_FALLBACK.map(item => ({
+                id: item.pid, pid: item.pid, img: item.img,
+                title: item.title, description: item.description || '',
+                link: 'product-detail.html?id=' + encodeURIComponent(item.pid)
+            }));
+        }
+        CAROUSEL_REAL_SLIDE_COUNT = CAROUSEL_ITEMS.length;
+
+        // 产品卡片数据
+        if (featuresData) {
+            renderFeatureCards(featuresData.map(item => ({
+                pid: item.productId,
+                img: item.image,
+                title: resolveName(item, ''),
+                description: item.description || ''
+            })));
+        } else {
+            renderFeatureCards(FEATURES_FALLBACK.map(item => ({
+                pid: item.pid, img: item.img,
+                title: item.title, description: item.description || ''
+            })));
+        }
+    }
+
+    // 渲染产品卡片区域（feature grid）
+    function renderFeatureCards(items) {
+        const grid = document.getElementById('featureGrid');
+        if (!grid) return;
+        grid.innerHTML = items.map((item, i) => {
+            const img = item.img || item.image || '';
+            const title = item.title || '';
+            const pid = item.pid || item.productId || '';
+            const desc = item.description || '';
+            const link = 'product-detail.html?id=' + encodeURIComponent(pid);
+            const delay = (i * 0.05).toFixed(2);
+            const descHTML = desc ? `<span style="display:block;font-size:0.55em;font-weight:400;opacity:0.7;margin-top:2px;">${desc}</span>` : '';
+            return `
+                <a class="feature-card" href="${link}" style="animation-delay:${delay}s">
+                    <img src="${img}" alt="${title}" onerror="this.src='https://placehold.co/600x600/12141d/e8e9f0?text=${encodeURIComponent(title)}'">
+                    <div class="feature-card-overlay">
+                        <span class="feature-title">${title}${descHTML}</span>
+                        <span class="feature-card-btn"><img src="Pictures/components/查看.svg" alt="">查看详情</span>
+                    </div>
+                </a>
+            `;
+        }).join('');
+    }
+
+    let currentSlideIndex = 0;
+    let carouselTimer = null;
+    let carouselIndicatorsInitialized = false;
+    let carouselTransitioning = false;
+    let carouselSlideWidth = 0;
+
+    function renderCarousel() {
+        const track = document.getElementById('carouselTrack');
+        const indicators = document.getElementById('carouselIndicators');
+        const makeSlideHTML = (item) => {
+            const descHTML = item.description ? `<div class="carousel-desc">${item.description}</div>` : '';
+            return `
+            <div class="carousel-slide">
+                <img src="${item.img}" alt="${item.title}" onerror="this.src='https://placehold.co/1200x520/12141d/e8e9f0?text=KOOMZE'">
+                <div class="carousel-overlay">
+                    <div class="carousel-title">${item.title}</div>
+                    ${descHTML}
+                    <a class="carousel-btn" href="${item.link || '#'}"><img src="Pictures/components/查看.svg" alt="">查看详情</a>
+                </div>
+            </div>`;
+        };
+        track.innerHTML = makeSlideHTML(CAROUSEL_ITEMS[CAROUSEL_REAL_SLIDE_COUNT - 1])
+            + CAROUSEL_ITEMS.map(item => makeSlideHTML(item)).join('')
+            + makeSlideHTML(CAROUSEL_ITEMS[0]);
+        // Fix data-index attributes for transition logic
+        const allSlides = track.querySelectorAll('.carousel-slide');
+        allSlides[0].setAttribute('data-index', '-1');
+        for (let i = 1; i <= CAROUSEL_REAL_SLIDE_COUNT; i++) allSlides[i].setAttribute('data-index', String(i - 1));
+        allSlides[allSlides.length - 1].setAttribute('data-index', String(CAROUSEL_REAL_SLIDE_COUNT));
+        indicators.innerHTML = CAROUSEL_ITEMS.map((_, index) =>
+            `<button class="carousel-indicator${index===0 ? ' active' : ''}" data-index="${index}" aria-label="Slide ${index+1}"></button>`
+        ).join('');
+
+        const trackNode = document.getElementById('carouselTrack');
+        trackNode.style.transform = 'translateX(0)';
+        trackNode.style.transition = 'none';
+        updateCarouselSlideWidth();
+    }
+
+    function updateCarouselSlideWidth() {
+        const slide = document.querySelector('.carousel-slide');
+        if (!slide) return;
+        carouselSlideWidth = slide.getBoundingClientRect().width;
+    }
+
+    function updateIndicators(index) {
+        const indicators = document.querySelectorAll('.carousel-indicator');
+        indicators.forEach((dot, i) => dot.classList.toggle('active', i === index));
+    }
+
+    function updateSlideActiveClass(index) {
+        const slides = document.querySelectorAll('.carousel-slide');
+        slides.forEach((slide, i) => slide.classList.toggle('active', i === index + 1));
+    }
+
+    function setCarouselPosition(index, animated = true) {
+        const trackNode = document.getElementById('carouselTrack');
+        if (!trackNode) return;
+        trackNode.style.transition = animated ? 'transform 0.6s ease' : 'none';
+        if (!carouselSlideWidth) updateCarouselSlideWidth();
+        trackNode.style.transform = `translateX(-${(index + 1) * carouselSlideWidth}px)`;
+    }
+
+    function updateCarouselState(index) {
+        if (index < 0) {
+            currentSlideIndex = -1;
+        } else if (index > CAROUSEL_REAL_SLIDE_COUNT) {
+            currentSlideIndex = 0;
+        } else {
+            currentSlideIndex = index;
+        }
+        const actualIndex = currentSlideIndex < 0 ? CAROUSEL_REAL_SLIDE_COUNT - 1 : currentSlideIndex >= CAROUSEL_REAL_SLIDE_COUNT ? 0 : currentSlideIndex;
+        updateIndicators(actualIndex);
+        updateSlideActiveClass(actualIndex);
+        setCarouselPosition(currentSlideIndex, true);
+    }
+
+    function nextCarouselSlide() {
+        if (carouselTransitioning) return;
+        updateCarouselState(currentSlideIndex + 1);
+    }
+
+    function prevCarouselSlide() {
+        if (carouselTransitioning) return;
+        updateCarouselState(currentSlideIndex - 1);
+    }
+
+    function startCarouselAutoScroll() {
+        if (carouselTimer) clearInterval(carouselTimer);
+        carouselTimer = setInterval(nextCarouselSlide, 5000);
+    }
+
+    function initCarouselIndicators() {
+        if (carouselIndicatorsInitialized) return;
+        carouselIndicatorsInitialized = true;
+        document.getElementById('carouselIndicators').addEventListener('click', e => {
+            const button = e.target.closest('.carousel-indicator');
+            if (!button) return;
+            updateCarouselState(Number(button.dataset.index));
+            startCarouselAutoScroll();
+        });
+        document.getElementById('carouselPrev').addEventListener('click', () => { prevCarouselSlide(); startCarouselAutoScroll(); });
+        document.getElementById('carouselNext').addEventListener('click', () => { nextCarouselSlide(); startCarouselAutoScroll(); });
+    }
+
+    function initCarouselTransitionReset() {
+        const trackNode = document.getElementById('carouselTrack');
+        if (!trackNode) return;
+        trackNode.addEventListener('transitionstart', () => { carouselTransitioning = true; });
+        trackNode.addEventListener('transitionend', () => {
+            carouselTransitioning = false;
+            if (currentSlideIndex === CAROUSEL_REAL_SLIDE_COUNT) {
+                currentSlideIndex = 0;
+                setCarouselPosition(0, false);
+                updateIndicators(0);
+                updateSlideActiveClass(0);
+            } else if (currentSlideIndex === -1) {
+                currentSlideIndex = CAROUSEL_REAL_SLIDE_COUNT - 1;
+                setCarouselPosition(currentSlideIndex, false);
+                updateIndicators(currentSlideIndex);
+                updateSlideActiveClass(currentSlideIndex);
+            }
+        });
+    }
+
+    function initCarouselResize() {
+        window.addEventListener('resize', () => {
+            updateCarouselSlideWidth();
+            setCarouselPosition(currentSlideIndex, false);
+        });
+    }
+
+    async function refreshUI() {
+        await initData();  // 先从 API 拉数据
+        renderCarousel();
+        initCarouselIndicators();
+        initCarouselTransitionReset();
+        initCarouselResize();
+        updateCarouselState(0);
+        startCarouselAutoScroll();
+    }
+
+    function initScrollEffect() {
+        const topBar = document.getElementById('topBar');
+        const handler = () => topBar.classList.toggle('scrolled', window.scrollY > 10);
+        window.addEventListener('scroll', handler, { passive: true });
+        handler();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        initCommon(function() { refreshUI(); });
+        refreshUI();
+        initDynamicNav();
+        initFooterSocial();
+        initScrollEffect();
+
+        /* Page loader — fade in image → hold → fade out */
+        const loader = document.getElementById('pageLoader');
+        if (loader) {
+            const HOLD_DURATION = 2500;   /* image visible for 2.5s before fading */
+            let loaderHidden = false;
+            function hideLoader() {
+                if (loaderHidden) return;
+                loaderHidden = true;
+                loader.classList.add('hidden');
+            }
+            window.addEventListener('load', () => {
+                const elapsed = performance.now();
+                const delay = Math.max(HOLD_DURATION - elapsed, 300);
+                setTimeout(hideLoader, delay);
+            });
+            /* fallback */
+            setTimeout(hideLoader, HOLD_DURATION + 1500);
+        }
+    });
+</script>
+</body>
+</html>
