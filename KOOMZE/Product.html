@@ -216,8 +216,10 @@
   function getDriverDesc(d) { return d['desc_'+(currentLang==='zh-CN'?'zh':currentLang==='zh-TW'?'tw':'en')]; }
   function renderProducts() {
     const container = document.getElementById('productList');
-    // 分类筛选已由后端 API 完成，前端仅做关键词搜索过滤
     let filtered = PRODUCTS.filter(p => {
+       if (currentCategory !== 'all' && p.cat !== currentCategory) {
+            return false;
+        }
       if (searchKeyword && !getProductName(p).toLowerCase().includes(searchKeyword.toLowerCase())) return false;
       return true;
     });
