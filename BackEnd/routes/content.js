@@ -50,7 +50,8 @@ router.post('/upload', (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: '请选择图片文件（支持 jpg/png/gif/webp/svg/bmp）' });
     }
-    const url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    // 使用相对路径（不以协议/主机开头），确保无论从 localhost 还是外网 IP 访问都能正常加载
+    const url = `/uploads/${req.file.filename}`;
     res.json({ url, filename: req.file.filename });
   });
 });
@@ -80,7 +81,8 @@ router.post('/upload-driver', (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: '请选择驱动文件（支持 zip/rar/exe/7z 等）' });
     }
-    const url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    // 使用相对路径，确保无论从 localhost 还是外网 IP 访问都能正常加载
+    const url = `/uploads/${req.file.filename}`;
     res.json({ url, filename: req.file.filename });
   });
 });
@@ -96,12 +98,26 @@ const collections = {
   'social': SocialPlatform
 };
 
-// 获取指定类型的数据
+// 获取指定类型的数据（支持 ?category= 筛选 product / product-tag）
 router.get('/:type', async (req, res) => {
   const Model = collections[req.params.type];
   if (!Model) return res.status(400).json({ error: '无效的数据类型' });
   try {
-    const data = await Model.find().sort({ order: 1, createdAt: -1 });
+    const filter = {};
+
+    // 🔥 支持 ?category=keyboard 按分类筛选
+    if (req.query.category) {
+      const catMap = { 'keyboard': '键盘', 'mouse': '鼠标', 'earphone': '耳机', 'speaker': '音箱', 'camera': '相机' };
+      const mapped = catMap[req.query.category] || req.query.category;
+
+      if (req.params.type === 'product') {
+        filter.category = mapped;              // Product 模型用 category 字段
+      } else if (req.params.type === 'product-tag') {
+        filter.type = mapped;                  // ProductTag 模型用 type 字段
+      }
+    }
+
+    const data = await Model.find(filter).sort({ order: 1, createdAt: -1 });
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });

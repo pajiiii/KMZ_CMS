@@ -66,23 +66,23 @@
   <div class="nav-links">
     <a href="Main.html" class="nav-link"><img class="nav-icon" src="Pictures/components/主页.svg" alt=""><span class="lang-zh">主页</span><span class="lang-tw">首頁</span><span class="lang-en">Home</span></a>
     <div class="dropdown">
-      <a href="Product.html?cat=keyboard" class="dropdown-toggle"><span class="lang-zh">键盘</span><span class="lang-tw">鍵盤</span><span class="lang-en">Keyboards</span></a>
+      <a href="Product.html?category=keyboard" class="dropdown-toggle"><span class="lang-zh">键盘</span><span class="lang-tw">鍵盤</span><span class="lang-en">Keyboards</span></a>
       <div class="dropdown-menu" data-category="keyboard"></div>
     </div>
     <div class="dropdown">
-      <a href="Product.html?cat=mouse" class="dropdown-toggle"><span class="lang-zh">鼠标</span><span class="lang-tw">滑鼠</span><span class="lang-en">Mice</span></a>
+      <a href="Product.html?category=mouse" class="dropdown-toggle"><span class="lang-zh">鼠标</span><span class="lang-tw">滑鼠</span><span class="lang-en">Mice</span></a>
       <div class="dropdown-menu" data-category="mouse"></div>
     </div>
     <div class="dropdown">
-      <a href="Product.html?cat=earphone" class="dropdown-toggle"><span class="lang-zh">耳机</span><span class="lang-tw">耳機</span><span class="lang-en">Headsets</span></a>
+      <a href="Product.html?category=earphone" class="dropdown-toggle"><span class="lang-zh">耳机</span><span class="lang-tw">耳機</span><span class="lang-en">Headsets</span></a>
       <div class="dropdown-menu" data-category="earphone"></div>
     </div>
     <div class="dropdown">
-      <a href="Product.html?cat=speaker" class="dropdown-toggle"><span class="lang-zh">音箱</span><span class="lang-tw">喇叭</span><span class="lang-en">Speakers</span></a>
+      <a href="Product.html?category=speaker" class="dropdown-toggle"><span class="lang-zh">音箱</span><span class="lang-tw">喇叭</span><span class="lang-en">Speakers</span></a>
       <div class="dropdown-menu" data-category="speaker"></div>
     </div>
     <div class="dropdown">
-      <a href="Product.html?cat=camera" class="dropdown-toggle"><span class="lang-zh">相机</span><span class="lang-tw">相機</span><span class="lang-en">Camera</span></a>
+      <a href="Product.html?category=camera" class="dropdown-toggle"><span class="lang-zh">相机</span><span class="lang-tw">相機</span><span class="lang-en">Camera</span></a>
       <div class="dropdown-menu" data-category="camera"></div>
     </div>
     <a href="Product.html?view=driver" class="nav-link" id="driverNav"><img class="nav-icon" src="Pictures/components/驱动.svg" alt=""><span class="lang-zh">驱动支持</span><span class="lang-tw">驅動支援</span><span class="lang-en">Drivers</span></a>
@@ -129,23 +129,6 @@
 
 <script src="common.js"></script>
 <script>
-  // ========== 兜底数据（API 无数据时使用） ==========
-  const PRODUCTS_FALLBACK = [
-    { pid:"H71", cat:"keyboard", img:"Pictures/白底图/H71键盘.png", name_zh:"H71键盘", name_tw:"H71鍵盤", name_en:"H71" },
-    { pid:"S6",  cat:"speaker",  img:"Pictures/白底图/S6音响.png", name_zh:"S6 音箱", name_tw:"S6 音箱", name_en:"S6 Speaker" },
-    { pid:"S9",  cat:"speaker",  img:"Pictures/白底图/S9音响.png", name_zh:"S9 音箱", name_tw:"S9 音箱", name_en:"S9 Speaker" },
-    { pid:"H75", cat:"keyboard", img:"Pictures/白底图/H75键盘.png", name_zh:"H75键盘", name_tw:"H75鍵盤", name_en:"H75" },
-    { pid:"H81", cat:"keyboard", img:"Pictures/白底图/H81键盘.png", name_zh:"H81键盘", name_tw:"H81鍵盤", name_en:"H81" },
-    { pid:"H98", cat:"keyboard", img:"Pictures/白底图/H98键盘.png", name_zh:"H98键盘", name_tw:"H98鍵盤", name_en:"H98" },
-    { pid:"H102",cat:"keyboard", img:"Pictures/白底图/102键盘.png", name_zh:"H102键盘", name_tw:"H102鍵盤", name_en:"H102" },
-    { pid:"CD",  cat:"speaker",  img:"Pictures/白底图/CD机.png", name_zh:"科曼者CD机", name_tw:"科曼者CD機", name_en:"KOOMZE CD Player" },
-    { pid:"K1",  cat:"earphone", img:"Pictures/白底图/K1头戴式耳机.png", name_zh:"K1 耳机", name_tw:"K1 耳機", name_en:"K1 Headset" },
-    { pid:"75",  cat:"keyboard", img:"Pictures/白底图/75键盘.png", name_zh:"75键盘", name_tw:"75鍵盤", name_en:"75 Keyboard" },
-    { pid:"K9pAI",cat:"earphone", img:"Pictures/白底图/K9＋AI款.png", name_zh:"K9pAI 耳机", name_tw:"K9pAI 耳機", name_en:"K9pAI Headset" },
-    { pid:"M7",  cat:"mouse",    img:"Pictures/白底图/M7鼠标.png", name_zh:"M7 鼠标", name_tw:"M7 滑鼠", name_en:"M7 Mouse" },
-    { pid:"C25", cat:"camera",   img:"Pictures/白底图/CCD相机.png", name_zh:"C25 相机", name_tw:"C25 相機", name_en:"C25 Camera" }
-  ];
-
   let PRODUCTS = [];
   let productNameMap = {}; // productId → name
 
@@ -168,20 +151,22 @@
     return item[fallbackKey] || pid || '未命名';
   }
 
-  // 从 API 拉产品列表，失败或无数据返回 null
-  async function initProducts() {
+  // 从 API 拉产品列表，可选按分类筛选；所有数据统一从数据库获取
+  async function initProducts(category) {
     await buildProductNameMap();
     try {
-      const res = await fetch('/api/content/product-tag');
-      if (!res.ok) { PRODUCTS = PRODUCTS_FALLBACK; return; }
+      const apiUrl = category
+        ? '/api/content/product-tag?category=' + encodeURIComponent(category)
+        : '/api/content/product-tag';
+      const res = await fetch(apiUrl);
+      if (!res.ok) { PRODUCTS = []; return; }
       const data = await res.json();
-      if (!data || data.length === 0) { PRODUCTS = PRODUCTS_FALLBACK; return; }
+      if (!data || data.length === 0) { PRODUCTS = []; return; }
       // 映射 API 数据 → 统一格式，名称通过 productId 查找
       PRODUCTS = data.map(item => {
         const pid = item.productId || '';
         const name = productNameMap[pid] || pid;
         const cat = item.type || '';
-        // 尝试从产品基础信息获取 category 作为 cat
         const catMap = { '键盘':'keyboard','鼠标':'mouse','耳机':'earphone','音箱':'speaker','相机':'camera' };
         return {
           id: pid,
@@ -193,7 +178,7 @@
           name_en: name
         };
       });
-    } catch (e) { console.log('API 不可用，使用本地兜底数据'); PRODUCTS = PRODUCTS_FALLBACK; }
+    } catch (e) { console.log('API 不可用，请检查网络连接'); PRODUCTS = []; }
   }
 
   const DRIVERS_FALLBACK = [
@@ -231,8 +216,8 @@
   function getDriverDesc(d) { return d['desc_'+(currentLang==='zh-CN'?'zh':currentLang==='zh-TW'?'tw':'en')]; }
   function renderProducts() {
     const container = document.getElementById('productList');
+    // 分类筛选已由后端 API 完成，前端仅做关键词搜索过滤
     let filtered = PRODUCTS.filter(p => {
-      if (currentCategory !== 'all' && p.cat !== currentCategory) return false;
       if (searchKeyword && !getProductName(p).toLowerCase().includes(searchKeyword.toLowerCase())) return false;
       return true;
     });
@@ -247,16 +232,32 @@
     document.getElementById('driverList').innerHTML = DRIVERS.map(d => `
       <div class="driver"><h4>${getDriverTitle(d)} <span class="version">${d.version}</span></h4><p>${getDriverDesc(d)}</p><a href="${d.link}" class="dl-btn" download><img class="nav-icon" src="Pictures/components/下载.svg" alt="" style="width:16px;height:16px;filter:brightness(0)invert(1);vertical-align:middle;"> <span class="lang-zh">立即下载</span><span class="lang-tw">立即下載</span><span class="lang-en">Download</span></a></div>`).join('');
   }
+  // 分类元数据（UI 配置，非产品数据）
+  const CATEGORY_META = [
+    { key:"all",       name_zh:"所有",      name_tw:"所有",      name_en:"All" },
+    { key:"keyboard",  name_zh:"键盘",      name_tw:"鍵盤",      name_en:"Keyboard" },
+    { key:"mouse",     name_zh:"鼠标",      name_tw:"滑鼠",      name_en:"Mouse" },
+    { key:"earphone",  name_zh:"耳机",      name_tw:"耳機",      name_en:"Earphone" },
+    { key:"speaker",   name_zh:"音箱/CD机", name_tw:"喇叭",      name_en:"Speaker/CD" },
+    { key:"camera",    name_zh:"相机",      name_tw:"相機",      name_en:"Camera" }
+  ];
+
   function setupCategories() {
     const catsContainer = document.getElementById('catsContainer');
-    const uniqueCats = [...new Set(PRODUCTS.map(p => p.cat))];
-    const catNames = { keyboard:{zh:"键盘",tw:"鍵盤",en:"Keyboard"}, speaker:{zh:"音箱/CD机",tw:"喇叭",en:"Speaker/CD"}, earphone:{zh:"耳机",tw:"耳機",en:"Earphone"}, mouse:{zh:"鼠标",tw:"滑鼠",en:"Mouse"}, camera:{zh:"相机",tw:"相機",en:"Camera"} };
-    const catList = [{key:"all", name_zh:"所有", name_tw:"所有", name_en:"All"}];
-    uniqueCats.forEach(cat => { const names = catNames[cat]||{zh:cat,tw:cat,en:cat}; catList.push({key:cat, name_zh:names.zh, name_tw:names.tw, name_en:names.en}); });
-    catsContainer.innerHTML = catList.map(cat => `<div class="cat ${currentCategory===cat.key?'active':''}" data-cat="${cat.key}"><span class="lang-zh">${cat.name_zh}</span><span class="lang-tw">${cat.name_tw}</span><span class="lang-en">${cat.name_en}</span></div>`).join('');
-    document.querySelectorAll('.cat').forEach(el => el.addEventListener('click', () => {
+    catsContainer.innerHTML = CATEGORY_META.map(cat => `<div class="cat ${currentCategory===cat.key?'active':''}" data-cat="${cat.key}"><span class="lang-zh">${cat.name_zh}</span><span class="lang-tw">${cat.name_tw}</span><span class="lang-en">${cat.name_en}</span></div>`).join('');
+    document.querySelectorAll('.cat').forEach(el => el.addEventListener('click', async () => {
       document.querySelectorAll('.cat').forEach(c => c.classList.remove('active')); el.classList.add('active');
-      currentCategory = el.dataset.cat; if (currentView === 'product') renderProducts();
+      currentCategory = el.dataset.cat;
+      // 同步更新浏览器 URL（不刷新页面），方便分享链接
+      const url = new URL(window.location);
+      if (currentCategory === 'all') { url.searchParams.delete('category'); }
+      else { url.searchParams.set('category', currentCategory); }
+      window.history.replaceState({}, '', url);
+      if (currentView === 'product') {
+        // 🔥 统一从数据库获取对应分类数据，不再使用本地硬编码
+        await initProducts(currentCategory !== 'all' ? currentCategory : null);
+        renderProducts();
+      }
     }));
   }
   function setView(view) {
@@ -268,7 +269,7 @@
     else { if(driverNav) driverNav.classList.add('active'); renderDrivers(); }
   }
   async function refreshUI() {
-    await initProducts();
+    await initProducts(currentCategory !== 'all' ? currentCategory : null);
     document.getElementById('searchInput').style.display = currentLang==='zh-CN'?'block':'none';
     document.getElementById('searchInputTw').style.display = currentLang==='zh-TW'?'block':'none';
     document.getElementById('searchInputEn').style.display = currentLang==='en'?'block':'none';
@@ -276,10 +277,21 @@
   }
   window.addEventListener('DOMContentLoaded', async () => {
     initCommon(function() { refreshUI(); });
-    await initProducts();
-    await loadDrivers();
+
     const params = new URLSearchParams(window.location.search);
-    setView(params.get('view') === 'driver' ? 'driver' : 'product');
+
+    // ---------- 读取 URL 参数：view（产品/驱动视图） ----------
+    const viewParam = params.get('view');
+
+    // ---------- 读取 URL 参数：category（分类筛选，如 ?category=keyboard） ----------
+    const catParam = params.get('category');
+    if (catParam) { currentCategory = catParam; }
+
+    // 🔥 初始化数据时传入筛选分类，让后端 API 直接返回过滤后的数据
+    await initProducts(currentCategory !== 'all' ? currentCategory : null);
+    await loadDrivers();
+
+    setView(viewParam === 'driver' ? 'driver' : 'product');
     setupCategories();
     initDynamicNav();
     initFooterSocial();
