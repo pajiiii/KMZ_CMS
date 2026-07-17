@@ -17,11 +17,29 @@ const IP_WHITELIST = (process.env.ADMIN_IP_WHITELIST || '127.0.0.1,::1,::ffff:12
 // ===== 管理员访问控制中间件（IP 白名单 + HTTP Basic Auth 双层防护） =====
 function adminGuard(req, res, next) {
   // 仅保护 /admin 相关路径，不影响前台页面和 API
-  if (!req.path.startsWith('/admin')) {
+  if (!req.path.startsWith('/admin') && req.path !== '/admin.html') {
     return next();
   }
 
-  const clientIP = req.ip || req.socket?.remoteAddress || '';
+  // ===== 真实客户端 IP 检测 =====
+  // 当使用 ngrok / Cloudflare Tunnel / 反向代理时，req.ip 拿到的是代理 IP（如 127.0.0.1）
+  // 需要从 X-Forwarded-For 头中提取真实客户端 IP，否则白名单会错误放行
+  const directIP = req.socket?.remoteAddress || '';
+  const forwardedFor = req.headers['x-forwarded-for'];
+
+  // 判断直连 IP 是否属于本地/内网地址（说明前方有代理/隧道）
+  const isLocalConnection = /^(::1|::ffff:127\.0\.0\.1|127\.0\.0\.1|10\.\d+|::ffff:10\.\d+|172\.(1[6-9]|2[0-9]|3[01])\.|::ffff:172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|::ffff:192\.168\.)/.test(directIP);
+
+  let clientIP;
+  if (isLocalConnection && forwardedFor) {
+    // 来自本地代理/隧道 → 信任 X-Forwarded-For 最左侧 IP（真实客户端）
+    clientIP = forwardedFor.split(',')[0].trim();
+    console.log(`[Admin] 检测到代理/隧道访问 | 直连: ${directIP} | X-Forwarded-For: ${forwardedFor} | 真实IP: ${clientIP}`);
+  } else {
+    clientIP = req.ip || directIP || '';
+  }
+
+  console.log(`[Admin] ${req.method} ${req.path} | 客户端IP: ${clientIP}`);
 
   // 第一层：IP 白名单 — 白名单内 IP 直接放行，无需认证
   if (IP_WHITELIST.includes(clientIP)) {
@@ -30,6 +48,7 @@ function adminGuard(req, res, next) {
   }
 
   // 第二层：HTTP Basic Authentication — 非白名单 IP 必须输入账号密码
+  console.log(`[Admin] 非白名单 IP，要求 Basic Auth: ${clientIP}`);
   const auth = basicAuth({
     users: { 'admin': process.env.ADMIN_PASSWORD || 'koomze2024' },
     challenge: true,

@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const HomeCarousel = require('../models/HomeCarousel');
 const HomeTag = require('../models/HomeTag');
+const HomeMiniCarousel = require('../models/HomeMiniCarousel');
 const ProductTag = require('../models/ProductTag');
 const ProductDetail = require('../models/ProductDetail');
 const Product = require('../models/Product');
@@ -92,6 +93,7 @@ const collections = {
   'product': Product,
   'home-carousel': HomeCarousel,
   'home-tag': HomeTag,
+  'home-mini-carousel': HomeMiniCarousel,
   'product-tag': ProductTag,
   'product-detail': ProductDetail,
   'driver': Driver,

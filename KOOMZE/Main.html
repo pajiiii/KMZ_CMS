@@ -17,7 +17,7 @@
             box-shadow: 0 24px 60px rgba(0,0,0,0.12);
         }
         .carousel-track { display: flex; transition: transform 0.6s ease; }
-        .carousel-slide { flex: 0 0 100%; position: relative; aspect-ratio: 21 / 9; }
+        .carousel-slide { flex: 0 0 100%; position: relative; aspect-ratio: 16 / 9; }
         .carousel-slide img {
             width: 100%; height: 100%; object-fit: cover; display: block;
             transition: transform 0.6s ease;
@@ -66,7 +66,7 @@
 
         /* ========== Main Page — Feature Cards ========== */
         .feature-section {
-            width: 100%; padding: 28px 5% 42px; position: relative; z-index: 1;
+            width: 100%; padding: 28px 2% 42px; position: relative; z-index: 1;
             display: grid; gap: 18px;
         }
         .feature-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
@@ -103,10 +103,135 @@
         .feature-card-btn img { width: 17px; height: 17px; object-fit: contain; filter: brightness(0) invert(1); }
         .feature-card-btn:hover { opacity: 0.85; transform: translateY(-1px); }
 
+        /* ========== Main Page — Mini Carousel (产品穿出卡片) ========== */
+        .mini-carousel-section {
+            width: 100%; padding: 0 5% 0; position: relative; z-index: 1;
+            margin-bottom: 0; display: none; /* 默认隐藏，有数据时 JS 显示 */
+        }
+        .mini-carousel-section.has-data { display: block; }
+        .mini-carousel-window {
+            width: 100%; overflow: hidden; position: relative;
+            border-radius: 0; background: transparent;
+        }
+        .mini-carousel-track {
+            display: flex; transition: transform 0.5s ease;
+            align-items: flex-end; /* 底部对齐，保证卡片底部一致 */
+        }
+        .mini-carousel-slide {
+            flex: 0 0 33.333%; min-width: 280px;
+            position: relative; padding: 0 10px;
+            box-sizing: border-box;
+        }
+        .mini-card {
+            position: relative; width: 100%; height: 500px;
+            overflow: visible; /* 允许上层产品图溢出 */
+            border: 1px solid var(--border);
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: 0 12px 40px var(--shadow);
+            transition: transform 0.35s ease, box-shadow 0.35s ease;
+        }
+        .mini-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 56px var(--shadow-lg);
+        }
+        /* 底层背景素材 */
+        .mini-card-bg {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            object-fit: cover; display: block; border-radius: var(--radius);
+        }
+        /* 上层产品素材 — 底部对齐，顶部可溢出 */
+        .mini-card-fg {
+            position: absolute; bottom: 0; left: 50%;
+            transform: translateX(-50%);
+            width: auto; max-width: 110%;
+            height: auto; max-height: none; /* 不限制高度，允许溢出 */
+            object-fit: contain; display: block;
+            z-index: 2; pointer-events: none;
+        }
+        /* 信息叠加层 */
+        .mini-card-info {
+            position: absolute; inset: 0; z-index: 3;
+            display: flex; flex-direction: column;
+            justify-content: flex-start;
+            padding: 24px 20px 16px;
+            pointer-events: none;
+        }
+        .mini-card-name {
+            color: #fff; font-size: clamp(1.4rem, 2.2vw, 2rem);
+            font-weight: 700; letter-spacing: 0.4px;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.55);
+            margin-bottom: 6px; pointer-events: auto;
+            line-height: 1.25;
+        }
+        .mini-card-desc {
+            font-size: 0.82rem; color: rgba(255,255,255,0.72);
+            font-weight: 400; letter-spacing: 0.2px;
+            text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+            pointer-events: auto; margin-bottom: auto;
+        }
+        .mini-card-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 6px; align-self: flex-end; margin-top: auto;
+            padding: 8px 18px; border-radius: 6px; border: none;
+            background: transparent; color: #fff; font-weight: 500;
+            font-size: 0.85rem; letter-spacing: 0.4px; text-decoration: none;
+            pointer-events: auto;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .mini-card-btn img {
+            width: 17px; height: 17px; object-fit: contain;
+            filter: brightness(0) invert(1);
+        }
+        .mini-card-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+
+        /* 小型轮播箭头 */
+        .mini-carousel-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 36px; height: 36px; border: none; border-radius: 50%;
+            background: rgba(255,255,255,0.15); cursor: pointer;
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), opacity 0.25s ease, background 0.25s ease;
+            z-index: 5; opacity: 0.75;
+        }
+        .mini-carousel-arrow img {
+            width: 28px; height: 28px; object-fit: contain;
+            filter: brightness(0) invert(1) drop-shadow(0 1px 3px rgba(0,0,0,0.4));
+        }
+        .mini-carousel-arrow:hover {
+            opacity: 1; background: rgba(255,255,255,0.3);
+            transform: translateY(-50%) scale(1.12);
+        }
+        .mini-carousel-arrow--prev { left: 0; }
+        .mini-carousel-arrow--next { right: 0; }
+
+        /* 小型轮播指示器 */
+        .mini-carousel-indicators {
+            display: flex; justify-content: center; gap: 8px; margin-top: 14px;
+        }
+        .mini-carousel-indicator {
+            width: 10px; height: 10px; border-radius: 50%;
+            border: 1px solid var(--border2);
+            background: rgba(0,0,0,0.08); cursor: pointer;
+            transition: transform 0.25s ease, background 0.25s ease;
+        }
+        .mini-carousel-indicator.active {
+            background: var(--text); transform: scale(1.18);
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .mini-carousel-slide { flex: 0 0 85%; min-width: 240px; }
+            .mini-card { height: 350px; }
+            .mini-card-name { font-size: 1.1rem; }
+            .mini-card-desc { font-size: 0.72rem; }
+        }
+
         /* ========== Main Page — Media Queries & Animations ========== */
         @media (max-width: 760px) {
             .feature-grid { grid-template-columns: 1fr; }
-            .feature-section { padding: 20px 4% 32px; }
+            .feature-section { padding: 20px 2% 32px; }
         }
 
         /* ========== Main Page — Page Loader ========== */
@@ -131,6 +256,7 @@
             100% { opacity: 1; transform: scale(1); }
         }
         .carousel-section { animation: fadeIn 0.6s ease both; }
+        .mini-carousel-section.has-data { animation: fadeInUp 0.5s ease both; }
         .feature-card { animation: fadeInUp 0.5s ease both; }
         .feature-card:nth-child(1){animation-delay:0.05s} .feature-card:nth-child(2){animation-delay:0.1s}
         .feature-card:nth-child(3){animation-delay:0.15s} .feature-card:nth-child(4){animation-delay:0.2s}
@@ -193,6 +319,15 @@
         <div class="carousel-indicators" id="carouselIndicators"></div>
     </div>
 </div>
+<!-- 主页小型叠加轮播（产品穿出卡片效果） -->
+<section class="mini-carousel-section" id="miniCarouselSection">
+    <div class="mini-carousel-window" id="miniCarouselWindow">
+        <div class="mini-carousel-track" id="miniCarouselTrack"></div>
+        <button class="mini-carousel-arrow mini-carousel-arrow--prev" id="miniCarouselPrev" aria-label="Previous slide"><img src="Pictures/components/左 左.svg" alt="上一张"></button>
+        <button class="mini-carousel-arrow mini-carousel-arrow--next" id="miniCarouselNext" aria-label="Next slide"><img src="Pictures/components/右 右.svg" alt="下一张"></button>
+    </div>
+    <div class="mini-carousel-indicators" id="miniCarouselIndicators"></div>
+</section>
 <div class="feature-section">
     <div class="feature-grid" id="featureGrid"></div>
 </div>
@@ -323,6 +458,183 @@
                 </a>
             `;
         }).join('');
+    }
+
+    // ========== 小型叠加轮播（产品穿出卡片效果） ==========
+    let MINI_CAROUSEL_ITEMS = [];
+    let miniCarouselRealCount = 0;
+    let miniCurrentIndex = 0;
+    let miniTimer = null;
+    let miniTransitioning = false;
+    let miniSlideWidth = 0;
+
+    // 从 API 获取小型轮播数据，无数据则隐藏整个区块
+    async function fetchMiniCarousel() {
+        try {
+            const res = await fetch('/api/content/home-mini-carousel');
+            if (!res.ok) return null;
+            const data = await res.json();
+            return (data && data.length > 0) ? data : null;
+        } catch (e) { console.log('小型轮播 API 不可用'); return null; }
+    }
+
+    function renderMiniCarousel(items) {
+        const section = document.getElementById('miniCarouselSection');
+        const track = document.getElementById('miniCarouselTrack');
+        const indicators = document.getElementById('miniCarouselIndicators');
+        if (!section || !track || !indicators) return;
+
+        if (!items || items.length === 0) {
+            section.classList.remove('has-data');
+            return;
+        }
+        section.classList.add('has-data');
+        MINI_CAROUSEL_ITEMS = items;
+        miniCarouselRealCount = items.length;
+
+        const makeSlideHTML = (item) => {
+            const pid = item.productId || '';
+            const name = item.name || productNameMap[pid] || pid || 'KOOMZE';
+            const desc = item.description || '';
+            const bgImg = item.bgImage || '';
+            const fgImg = item.fgImage || '';
+            const link = 'product-detail.html?id=' + encodeURIComponent(pid);
+            const descHTML = desc ? `<div class="mini-card-desc">${desc}</div>` : '';
+            return `
+            <div class="mini-carousel-slide">
+                <div class="mini-card">
+                    <img class="mini-card-bg" src="${bgImg}" alt="">
+                    <img class="mini-card-fg" src="${fgImg}" alt="${name}">
+                    <div class="mini-card-info">
+                        <div class="mini-card-name">${name}</div>
+                        ${descHTML}
+                        <a class="mini-card-btn" href="${link}"><img src="Pictures/components/查看.svg" alt="">查看详情</a>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        // 无限循环：克隆首尾
+        if (miniCarouselRealCount === 1) {
+            track.innerHTML = makeSlideHTML(items[0]) + makeSlideHTML(items[0]) + makeSlideHTML(items[0]);
+        } else {
+            track.innerHTML = makeSlideHTML(items[miniCarouselRealCount - 1])
+                + items.map(item => makeSlideHTML(item)).join('')
+                + makeSlideHTML(items[0]);
+        }
+
+        // 渲染指示器
+        indicators.innerHTML = items.map((_, i) =>
+            `<button class="mini-carousel-indicator${i === 0 ? ' active' : ''}" data-index="${i}" aria-label="Slide ${i + 1}"></button>`
+        ).join('');
+
+        // 初始位置（跳过克隆的第一张）
+        track.style.transition = 'none';
+        updateMiniSlideWidth();
+        track.style.transform = `translateX(-${miniSlideWidth}px)`;
+        miniCurrentIndex = 0;
+    }
+
+    function updateMiniSlideWidth() {
+        const slide = document.querySelector('.mini-carousel-slide');
+        if (!slide) return;
+        miniSlideWidth = slide.getBoundingClientRect().width;
+    }
+
+    function updateMiniIndicators(index) {
+        const dots = document.querySelectorAll('.mini-carousel-indicator');
+        dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
+    }
+
+    function setMiniCarouselPos(index, animated = true) {
+        const track = document.getElementById('miniCarouselTrack');
+        if (!track) return;
+        track.style.transition = animated ? 'transform 0.5s ease' : 'none';
+        if (!miniSlideWidth) updateMiniSlideWidth();
+        // index 0 = real first slide, but we have clone before it, so +1 offset
+        track.style.transform = `translateX(-${(index + 1) * miniSlideWidth}px)`;
+    }
+
+    function updateMiniCarouselState(index) {
+        if (miniTransitioning) return;
+        if (index < 0) {
+            miniCurrentIndex = miniCarouselRealCount - 1;
+        } else if (index >= miniCarouselRealCount) {
+            miniCurrentIndex = 0;
+        } else {
+            miniCurrentIndex = index;
+        }
+        updateMiniIndicators(miniCurrentIndex);
+        setMiniCarouselPos(miniCurrentIndex, true);
+    }
+
+    function nextMiniSlide() {
+        if (miniTransitioning) return;
+        updateMiniCarouselState(miniCurrentIndex + 1);
+    }
+
+    function prevMiniSlide() {
+        if (miniTransitioning) return;
+        updateMiniCarouselState(miniCurrentIndex - 1);
+    }
+
+    function startMiniAutoScroll() {
+        if (miniTimer) clearInterval(miniTimer);
+        if (miniCarouselRealCount <= 1) return;
+        miniTimer = setInterval(nextMiniSlide, 5000);
+    }
+
+    function initMiniCarouselEvents() {
+        // 指示器点击
+        document.getElementById('miniCarouselIndicators').addEventListener('click', e => {
+            const btn = e.target.closest('.mini-carousel-indicator');
+            if (!btn) return;
+            const idx = Number(btn.dataset.index);
+            updateMiniCarouselState(idx);
+            startMiniAutoScroll();
+        });
+        // 箭头
+        document.getElementById('miniCarouselPrev').addEventListener('click', () => { prevMiniSlide(); startMiniAutoScroll(); });
+        document.getElementById('miniCarouselNext').addEventListener('click', () => { nextMiniSlide(); startMiniAutoScroll(); });
+
+        // 过渡结束 — 无缝循环重置
+        const track = document.getElementById('miniCarouselTrack');
+        if (!track) return;
+        track.addEventListener('transitionstart', () => { miniTransitioning = true; });
+        track.addEventListener('transitionend', () => {
+            miniTransitioning = false;
+            if (miniCurrentIndex >= miniCarouselRealCount) {
+                miniCurrentIndex = 0;
+                setMiniCarouselPos(0, false);
+                updateMiniIndicators(0);
+            } else if (miniCurrentIndex < 0) {
+                miniCurrentIndex = miniCarouselRealCount - 1;
+                setMiniCarouselPos(miniCurrentIndex, false);
+                updateMiniIndicators(miniCurrentIndex);
+            }
+        });
+
+        // 窗口大小变化时重新计算
+        window.addEventListener('resize', () => {
+            updateMiniSlideWidth();
+            setMiniCarouselPos(miniCurrentIndex, false);
+        });
+    }
+
+    let miniCarouselEventsInitialized = false;
+
+    async function initMiniCarousel() {
+        const data = await fetchMiniCarousel();
+        const items = data ? data.sort((a, b) => (a.order || 0) - (b.order || 0)) : null;
+        if (items && items.length > 0) {
+            renderMiniCarousel(items);
+            if (!miniCarouselEventsInitialized) {
+                initMiniCarouselEvents();
+                miniCarouselEventsInitialized = true;
+            }
+            startMiniAutoScroll();
+        }
+        // 无数据时区块保持隐藏状态
     }
 
     let currentSlideIndex = 0;
@@ -465,6 +777,7 @@
         initCarouselResize();
         updateCarouselState(0);
         startCarouselAutoScroll();
+        initMiniCarousel(); // 初始化小型叠加轮播
     }
 
     function initScrollEffect() {

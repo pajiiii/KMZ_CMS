@@ -159,6 +159,7 @@
         <button class="tab-btn" data-type="product">产品基础信息</button>
         <button class="tab-btn" data-type="home-carousel">主页轮播长图</button>
         <button class="tab-btn" data-type="home-tag">主页标签图</button>
+        <button class="tab-btn" data-type="home-mini-carousel">主页小型轮播</button>
         <button class="tab-btn" data-type="product-tag">产品页标签图</button>
         <button class="tab-btn" data-type="product-detail">产品详情页面</button>
         <button class="tab-btn" data-type="driver">驱动文件管理</button>
@@ -242,6 +243,17 @@
                 { key: 'order', label: '排序（数字越小越靠前）', type: 'number', required: false, placeholder: '0' }
             ],
             label: '主页标签小图', nameKey: 'productId', metaKey: 'description'
+        },
+        'home-mini-carousel': {
+            fields: [
+                { key: 'productId', label: '关联产品 ID', type: 'pid', required: true, placeholder: '输入产品 ID（如 H75）' },
+                { key: 'name', label: '产品名称（可自动填入，也可手动修改）', type: 'text', required: false, placeholder: '如 H75 三模机械键盘' },
+                { key: 'bgImage', label: '底层背景素材（建议 600×500px）', type: 'image', required: true, placeholder: 'https://...' },
+                { key: 'fgImage', label: '上层产品素材（透明 PNG，建议宽 660px 高≥500px）', type: 'image', required: true, placeholder: 'https://...' },
+                { key: 'description', label: '描述小字（留空不显示）', type: 'text', required: false, placeholder: '如：如此强劲，令人惊叹' },
+                { key: 'order', label: '排序（数字越小越靠前）', type: 'number', required: false, placeholder: '0' }
+            ],
+            label: '主页小型轮播', nameKey: 'productId', metaKey: 'description'
         },
         'product-tag': {
             fields: [
@@ -492,6 +504,14 @@
             } else if (type === 'social') {
                 displayName = item.name || '未命名';
                 displayMeta = item.qrImage ? '已上传二维码' : '未上传二维码';
+            } else if (type === 'home-mini-carousel') {
+                const pid = item.productId || '';
+                displayName = item.name || getProductName(pid);
+                displayMeta = 'ID: ' + escapeHtml(pid);
+                if (item.description) displayMeta += ' | ' + escapeHtml(String(item.description).substring(0, 40));
+                if (item.bgImage) displayMeta += ' | 已上传背景图';
+                if (item.fgImage) displayMeta += ' | 已上传产品图';
+                if (item.order !== undefined && item.order !== null) displayMeta += ' | 排序: ' + item.order;
             } else {
                 const pid = item.productId || '';
                 displayName = getProductName(pid);
