@@ -37,6 +37,7 @@ router.post('/upload', (req, res) => {
   upload.single('image')(req, res, (err) => {
     // Multer 错误处理
     if (err) {
+      console.error('[Upload] 图片上传错误:', err.code || err.message || err);
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({ error: '图片不能超过 10MB' });
       }
@@ -49,10 +50,12 @@ router.post('/upload', (req, res) => {
       return res.status(500).json({ error: '服务器上传错误' });
     }
     if (!req.file) {
-      return res.status(400).json({ error: '请选择图片文件（支持 jpg/png/gif/webp/svg/bmp）' });
+      console.error('[Upload] req.file 为空，可能是磁盘写入失败或文件格式不正确');
+      return res.status(400).json({ error: '请选择图片文件（支持 jpg/png/gif/webp/svg/bmp），如已选择请检查磁盘空间和目录权限' });
     }
     // 使用相对路径（不以协议/主机开头），确保无论从 localhost 还是外网 IP 访问都能正常加载
     const url = `/uploads/${req.file.filename}`;
+    console.log('[Upload] 图片上传成功:', url);
     res.json({ url, filename: req.file.filename });
   });
 });
@@ -120,8 +123,10 @@ router.get('/:type', async (req, res) => {
     }
 
     const data = await Model.find(filter).sort({ order: 1, createdAt: -1 });
+    console.log('[Content] GET /' + req.params.type + ' 返回 ' + data.length + ' 条');
     res.json(data);
   } catch (err) {
+    console.error('[Content] GET /' + req.params.type + ' 查询失败:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -131,10 +136,18 @@ router.post('/:type', async (req, res) => {
   const Model = collections[req.params.type];
   if (!Model) return res.status(400).json({ error: '无效的数据类型' });
   try {
+    console.log('[Content] POST /' + req.params.type + ' 请求体:', JSON.stringify(req.body).substring(0, 200));
     const newItem = new Model(req.body);
     const saved = await newItem.save();
+    console.log('[Content] POST /' + req.params.type + ' 保存成功, _id:', saved._id);
     res.status(201).json(saved);
   } catch (err) {
+    console.error('[Content] POST /' + req.params.type + ' 保存失败:', err.message);
+    // Mongoose 验证错误时返回更友好的提示
+    if (err.name === 'ValidationError') {
+      const fields = Object.keys(err.errors).join(', ');
+      return res.status(400).json({ error: '字段验证失败: ' + fields + ' — ' + err.message });
+    }
     res.status(400).json({ error: err.message });
   }
 });

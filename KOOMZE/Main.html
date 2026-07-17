@@ -109,7 +109,7 @@
             width: 100%; padding: 0 5% 0; position: relative; z-index: 1;
             margin-bottom: 0; display: none; /* 默认隐藏，有数据时 JS 显示 */
         }
-        .mini-carousel-section.has-data { display: block; }
+        .mini-carousel-section.has-data { display: block; margin-top: 56px; }
         .mini-carousel-window {
             width: 100%; overflow: hidden; position: relative;
             border-radius: 0; background: transparent;
@@ -473,10 +473,21 @@
     async function fetchMiniCarousel() {
         try {
             const res = await fetch('/api/content/home-mini-carousel');
-            if (!res.ok) return null;
+            if (!res.ok) {
+                console.warn('[MiniCarousel] API 返回状态码 ' + res.status + '，可能数据库无数据');
+                return null;
+            }
             const data = await res.json();
+            if (!data || data.length === 0) {
+                console.log('[MiniCarousel] API 返回空数组，小轮播将保持隐藏');
+            } else {
+                console.log('[MiniCarousel] 成功获取 ' + data.length + ' 条数据');
+            }
             return (data && data.length > 0) ? data : null;
-        } catch (e) { console.log('小型轮播 API 不可用'); return null; }
+        } catch (e) {
+            console.error('[MiniCarousel] API 请求失败:', e.message || e);
+            return null;
+        }
     }
 
     function renderMiniCarousel(items) {
@@ -515,9 +526,33 @@
             </div>`;
         };
 
-        // 无限循环：克隆首尾
+        // 【修复】只有 1 条数据时：不做无限循环克隆，直接显示单张卡片居中
         if (miniCarouselRealCount === 1) {
-            track.innerHTML = makeSlideHTML(items[0]) + makeSlideHTML(items[0]) + makeSlideHTML(items[0]);
+            track.innerHTML = makeSlideHTML(items[0]);
+            // 单张时隐藏箭头和指示器
+            const prevBtn = document.getElementById('miniCarouselPrev');
+            const nextBtn = document.getElementById('miniCarouselNext');
+            if (prevBtn) prevBtn.style.display = 'none';
+            if (nextBtn) nextBtn.style.display = 'none';
+            indicators.innerHTML = '';
+            track.style.transition = 'none';
+            track.style.transform = 'translateX(0)';
+            miniCurrentIndex = 0;
+            if (miniTimer) { clearInterval(miniTimer); miniTimer = null; }
+            return;
+        }
+        // 恢复箭头显示
+        const prevBtn = document.getElementById('miniCarouselPrev');
+        const nextBtn = document.getElementById('miniCarouselNext');
+        if (prevBtn) prevBtn.style.display = '';
+        if (nextBtn) nextBtn.style.display = '';
+
+        // 无限循环：克隆首尾（2 条及以上）
+        if (miniCarouselRealCount === 2) {
+            // 2 条时克隆到足够数量用于循环
+            track.innerHTML = makeSlideHTML(items[1])
+                + makeSlideHTML(items[0]) + makeSlideHTML(items[1])
+                + makeSlideHTML(items[0]);
         } else {
             track.innerHTML = makeSlideHTML(items[miniCarouselRealCount - 1])
                 + items.map(item => makeSlideHTML(item)).join('')
@@ -778,7 +813,7 @@
         initCarouselResize();
         updateCarouselState(0);
         startCarouselAutoScroll();
-        initMiniCarousel(); // 初始化小型叠加轮播
+        await initMiniCarousel(); // 【修复】await 确保小轮播初始化完成再继续
     }
 
     function initScrollEffect() {
@@ -789,6 +824,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+        // initCommon 回调仅在切换语言时触发；首次渲染需直接调用 refreshUI()
         initCommon(function() { refreshUI(); });
         refreshUI();
         initDynamicNav();

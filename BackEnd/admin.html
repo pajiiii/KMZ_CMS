@@ -224,7 +224,7 @@
                 { key: 'name', label: '产品名称', type: 'text', required: true, placeholder: '如 H75 三模机械键盘' },
                 { key: 'category', label: '产品分类', type: 'select', required: true, options: ['键盘','鼠标','耳机','音箱','相机'] }
             ],
-            label: '产品基础信息', nameKey: 'name', metaKey: 'productId'
+            label: '产品基础信息'
         },
         'home-carousel': {
             fields: [
@@ -233,7 +233,7 @@
                 { key: 'description', label: '描述文案（名称下方小字，留空不显示）', type: 'text', required: false, placeholder: '如：如此强劲，令人惊叹' },
                 { key: 'order', label: '排序（数字越小越靠前）', type: 'number', required: false, placeholder: '0' }
             ],
-            label: '主页轮播大图', nameKey: 'productId', metaKey: 'description'
+            label: '主页轮播大图'
         },
         'home-tag': {
             fields: [
@@ -242,7 +242,7 @@
                 { key: 'description', label: '描述文案（名称下方小字，留空不显示）', type: 'text', required: false, placeholder: '如：高性能游戏键盘' },
                 { key: 'order', label: '排序（数字越小越靠前）', type: 'number', required: false, placeholder: '0' }
             ],
-            label: '主页标签小图', nameKey: 'productId', metaKey: 'description'
+            label: '主页标签小图'
         },
         'home-mini-carousel': {
             fields: [
@@ -253,7 +253,7 @@
                 { key: 'description', label: '描述小字（留空不显示）', type: 'text', required: false, placeholder: '如：如此强劲，令人惊叹' },
                 { key: 'order', label: '排序（数字越小越靠前）', type: 'number', required: false, placeholder: '0' }
             ],
-            label: '主页小型轮播', nameKey: 'productId', metaKey: 'description'
+            label: '主页小型轮播'
         },
         'product-tag': {
             fields: [
@@ -261,7 +261,7 @@
                 { key: 'image', label: '产品图片', type: 'image', required: true, placeholder: 'https://...' },
                 { key: 'type', label: '产品类型（用于分类筛选）', type: 'select', required: false, options: ['键盘','鼠标','耳机','音箱','相机'] }
             ],
-            label: '产品页标签图', nameKey: 'productId', metaKey: 'type'
+            label: '产品页标签图'
         },
         'product-detail': {
             fields: [
@@ -273,7 +273,7 @@
                 { key: 'buyLink4', label: '购买链接 4（可选）', type: 'url', required: false, placeholder: 'https://...' },
                 { key: 'buyLink5', label: '购买链接 5（可选）', type: 'url', required: false, placeholder: 'https://...' }
             ],
-            label: '产品详情页', nameKey: 'productId', metaKey: 'buyLink1'
+            label: '产品详情页'
         },
         'driver': {
             fields: [
@@ -283,7 +283,7 @@
                 { key: 'description', label: '驱动描述', type: 'text', required: false, placeholder: '如：支持 A75 / A98 / K2 系列' },
                 { key: 'file', label: '驱动文件', type: 'file', required: true, placeholder: '选择本地驱动文件上传' }
             ],
-            label: '驱动文件', nameKey: 'name', metaKey: 'type'
+            label: '驱动文件'
         },
         'social': {
             fields: [
@@ -291,7 +291,7 @@
                 { key: 'qrImage', label: '二维码图片', type: 'image', required: true, placeholder: 'https://...' },
                 { key: 'order', label: '排序（数字越小越靠前）', type: 'number', required: false, placeholder: '0' }
             ],
-            label: '官方账号', nameKey: 'name', metaKey: 'qrImage'
+            label: '官方账号'
         }
     };
 
@@ -338,13 +338,22 @@
             const isDriver = btn.dataset.type === 'driver';
             btn.addEventListener('click', () => isDriver ? triggerFileUpload(btn) : triggerImageUpload(btn));
         });
-        // 绑定图片预览
-        document.querySelectorAll('input[id^="field_image"]').forEach(input => {
-            input.addEventListener('input', () => {
-                const key = input.id.replace('field_', '');
-                const preview = document.getElementById('preview_' + key);
-                if (preview) { const url = input.value.trim(); if (url) { preview.src = url; preview.classList.add('show'); } else preview.classList.remove('show'); }
-            });
+        // 【修复】绑定图片预览 — 遍历配置中的 image 类型字段，而非依赖固定 id 前缀
+        config.fields.filter(f => f.type === 'image').forEach(f => {
+            const input = document.getElementById('field_' + f.key);
+            const preview = document.getElementById('preview_' + f.key);
+            if (input && preview) {
+                input.addEventListener('input', () => {
+                    const url = input.value.trim();
+                    if (url) { preview.src = url; preview.classList.add('show'); }
+                    else preview.classList.remove('show');
+                });
+                // 如果字段已有值（如编辑回填），立即显示预览
+                if (input.value.trim()) {
+                    preview.src = input.value.trim();
+                    preview.classList.add('show');
+                }
+            }
         });
         // 绑定 productId 自动提示
         document.querySelectorAll('input[id^="field_productId"]').forEach(input => {
@@ -408,13 +417,15 @@
                     setTimeout(() => { btn.classList.remove('done'); btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> 本地上传'; }, 3000);
                     showMessage('图片上传成功！', 'success');
                 } else {
-                    let errMsg = '上传失败';
+                    let errMsg = '上传失败（状态码 ' + res.status + '）';
                     try { const errData = await res.json(); errMsg = errData.error || errMsg; } catch(e){}
+                    // 检测常见云服务器问题
+                    if (res.status === 413) errMsg += ' — 图片可能过大，请压缩后重试，或联系运维调整 Nginx client_max_body_size';
                     throw new Error(errMsg);
                 }
             } catch(err) {
                 btn.classList.remove('uploading'); btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> 本地上传';
-                showMessage((err.message || '图片上传失败'), 'error');
+                showMessage((err.message || '图片上传失败，请检查网络或服务器磁盘空间'), 'error');
             }
             document.body.removeChild(fileInput);
         });
@@ -548,6 +559,13 @@
         const data = getFormData(currentType);
         const config = FIELD_CONFIGS[currentType];
         for (const f of config.fields) { if (f.required && !data[f.key]) { showMessage('请填写必填项：' + f.label, 'error'); return; } }
+        // 【新增】提交前二次确认小轮播关键字段
+        if (currentType === 'home-mini-carousel') {
+            if (!data.bgImage || !data.fgImage) {
+                showMessage('小轮播需要同时上传「底层背景素材」和「上层产品素材」两张图片', 'error');
+                return;
+            }
+        }
         try {
             const res = await fetch('/api/content/' + currentType, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
@@ -556,7 +574,13 @@
                 showMessage(config.label + ' 上传成功！');
                 resetForm(); await loadProductMap(); loadList(currentType); refreshLookupTable();
             } else {
-                const err = await res.json(); showMessage('上传失败: ' + (err.error || '未知错误'), 'error');
+                const err = await res.json();
+                let errMsg = err.error || '未知错误';
+                // 给出更友好的提示
+                if (errMsg.includes('ValidationError') || errMsg.includes('字段验证失败')) {
+                    errMsg = '数据验证失败：' + errMsg + ' — 请检查所有必填字段是否已填写';
+                }
+                showMessage('上传失败: ' + errMsg, 'error');
             }
         } catch(err) { showMessage('网络请求失败', 'error'); }
     });
