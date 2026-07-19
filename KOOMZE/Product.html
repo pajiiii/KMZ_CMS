@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title>KOOMZE 科曼者 | 产品与驱动</title>
+  <link rel="icon" type="image/png" href="favicon.png">
   <link rel="stylesheet" href="common.css">
   <style>
     /* ========== Product Page — Layout ========== */
@@ -40,23 +41,69 @@
     }
 
     /* ========== Product Page — Drivers ========== */
-    .driver-list { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:24px; }
-    .driver { background:var(--card); border:1px solid var(--border); padding:28px; border-radius:6px; transition:0.3s; backdrop-filter:blur(4px); }
-    .driver:hover { border-color:var(--border2); box-shadow:0 12px 30px var(--shadow); }
-    .driver h4 { font-size:1.4rem; margin-bottom:10px; color:var(--theme); display:flex; align-items:center; gap:8px; }
-    .driver h4 .version { font-size:0.7rem; background:var(--theme); color:#fff; padding:2px 8px; border-radius:12px; font-weight:500; }
-    .driver p { color:var(--text2); margin:14px 0 20px; font-size:0.9rem; }
-    .dl-btn { display:inline-block; padding:10px 22px; background:var(--theme); color:#fff; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1); font-size:0.9rem; box-shadow:0 4px 14px var(--shadow); }
-    .dl-btn:hover { background:var(--theme2); box-shadow:0 6px 22px var(--theme-glow); transform:translateY(-3px) scale(1.03); }
+    .driver-section { margin-bottom: 48px; }
+    .driver-section-title {
+      font-size: 1.5rem; font-weight: 700; color: var(--text);
+      margin-bottom: 20px; padding-bottom: 10px;
+      border-bottom: 2px solid var(--theme);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .driver-section-title::before {
+      content: ''; display: inline-block; width: 6px; height: 24px;
+      background: var(--theme); border-radius: 3px;
+    }
+    .driver-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+    .driver {
+      background: var(--card); border: 1px solid var(--border); padding: 24px 18px 18px;
+      border-radius: 0; transition: 0.3s; backdrop-filter: blur(4px);
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .driver:hover { border-color: var(--border2); box-shadow: 0 12px 30px var(--shadow); transform: translateY(-4px); }
+    .driver-model {
+      font-size: 0.8rem; font-weight: 600; color: var(--theme);
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .driver-name { font-size: 1.1rem; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .driver-meta { display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; color: var(--text2); }
+    .driver-meta .meta-row { display: flex; align-items: baseline; gap: 6px; }
+    .driver-meta .meta-label { font-weight: 600; color: var(--text3); white-space: nowrap; }
+    .driver-meta .meta-value { color: var(--text2); word-break: break-all; }
+    .driver-actions { display: flex; gap: 10px; margin-top: auto; flex-wrap: wrap; }
+    .dl-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 20px; background: var(--theme); color: #fff; border-radius: 6px;
+      text-decoration: none; font-weight: 600; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      font-size: 0.85rem; box-shadow: 0 4px 14px var(--shadow); border: none; cursor: pointer;
+      white-space: nowrap;
+    }
+    .dl-btn:hover { background: var(--theme2); box-shadow: 0 6px 22px var(--theme-glow); transform: translateY(-3px) scale(1.03); }
+    .dl-btn.web-btn {
+      background: transparent; color: var(--theme); border: 1px solid var(--theme);
+      box-shadow: none;
+    }
+    .dl-btn.web-btn:hover { background: var(--theme); color: #fff; box-shadow: 0 6px 22px var(--theme-glow); }
+    .dl-btn img { width: 16px; height: 16px; object-fit: contain; }
+    .dl-btn:not(.web-btn) img { filter: brightness(0) invert(1); }
+    .dl-btn.web-btn img { filter: none; }
+    .driver-empty {
+      text-align: center; padding: 60px 20px; color: var(--text2); grid-column: 1 / -1;
+    }
+
+    /* 驱动页响应式 */
+    @media (max-width: 1100px) { .driver-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 800px)  { .driver-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 500px)  { .driver-grid { grid-template-columns: 1fr; } }
 
     /* ========== Product Page — Entry Animations ========== */
-    .product-toolbar { animation:fadeInUp 0.5s ease both; }
-    .product { animation:fadeInUp 0.5s ease both; }
+    .product-toolbar { animation: fadeInUp 0.5s ease both; }
+    .product { animation: fadeInUp 0.5s ease both; }
     .product:nth-child(1){animation-delay:0s} .product:nth-child(2){animation-delay:0.06s} .product:nth-child(3){animation-delay:0.12s} .product:nth-child(4){animation-delay:0.18s}
     .product:nth-child(5){animation-delay:0.24s} .product:nth-child(6){animation-delay:0.3s} .product:nth-child(7){animation-delay:0.36s} .product:nth-child(8){animation-delay:0.42s}
     .product:nth-child(n+9){animation-delay:0.48s}
-    .driver { animation:fadeInUp 0.5s ease both; }
-    .driver:nth-child(1){animation-delay:0s} .driver:nth-child(2){animation-delay:0.1s} .driver:nth-child(3){animation-delay:0.2s}
+    .driver-section { animation: fadeInUp 0.5s ease both; }
+    .driver { animation: fadeInUp 0.5s ease both; }
+    .driver:nth-child(1){animation-delay:0s} .driver:nth-child(2){animation-delay:0.06s}
+    .driver:nth-child(3){animation-delay:0.12s} .driver:nth-child(4){animation-delay:0.18s}
   </style>
 </head>
 <body>
@@ -86,6 +133,7 @@
       <div class="dropdown-menu" data-category="camera"></div>
     </div>
     <a href="Product.html?view=driver" class="nav-link" id="driverNav"><img class="nav-icon" src="Pictures/components/驱动.svg" alt=""><span class="lang-zh">驱动支持</span><span class="lang-tw">驅動支援</span><span class="lang-en">Drivers</span></a>
+    <a href="KeyboardTester-main/index.html" class="nav-link"><span class="lang-zh">⌨ 键盘测试</span><span class="lang-tw">⌨ 鍵盤測試</span><span class="lang-en">⌨ Keyboard Test</span></a>
   </div>
   <div class="top-right">
     <label class="lang-switch" title="切换语言">
@@ -112,7 +160,7 @@
     <div class="product-list" id="productList"></div>
   </div>
   <div id="driverPage" style="display:none;">
-    <div class="driver-list" id="driverList"></div>
+    <div id="driverContainer"></div>
   </div>
 </div>
 
@@ -181,13 +229,6 @@
     } catch (e) { console.log('API 不可用，请检查网络连接'); PRODUCTS = []; }
   }
 
-  const DRIVERS_FALLBACK = [
-    { id:1, type:"keyboard", version:"v2.3.1", name_zh:"键盘通用驱动中心", name_tw:"鍵盤通用驅動中心", name_en:"Keyboard Driver Suite", desc_zh:"支持 A75 / A98 / K2 系列", desc_tw:"支援 A75 / A98 / K2 系列", desc_en:"Support A75/A98/K2 series", link:"Drivers/键盘驱动.txt" },
-    { id:2, type:"mouse", version:"v1.9.0", name_zh:"鼠标驱动及固件升级", name_tw:"滑鼠驅動及韌體升級", name_en:"Mouse Driver & Firmware", desc_zh:"适配 A950 / A960 / M1 Pro", desc_tw:"適配 A950 / A960 / M1 Pro", desc_en:"For A950/A960/M1 Pro", link:"Drivers/鼠标驱动.txt" },
-    { id:3, type:"headset", version:"v1.2", name_zh:"耳机音效驱动", name_tw:"耳機音效驅動", name_en:"Headset Audio Driver", desc_zh:"EH925/GH70 7.1环绕声", desc_tw:"EH925/GH70 7.1環繞聲", desc_en:"EH925/GH70 7.1 surround", link:"Drivers/耳机驱动.txt" }
-  ];
-  let DRIVERS = [];
-
   async function loadDrivers() {
     try {
       const res = await fetch('/api/content/driver');
@@ -195,16 +236,17 @@
         const data = await res.json();
         if (data && data.length > 0) {
           DRIVERS = data.map(d => ({
-            id: d._id, type: d.type, version: d.version,
-            name_zh: d.name, name_tw: d.name, name_en: d.name,
-            desc_zh: d.description, desc_tw: d.description, desc_en: d.description,
-            link: d.file
+            id: d._id, type: d.type, model: d.model || '',
+            name: d.name, version: d.version,
+            description: d.description || '',
+            file: d.file,
+            webDriverLink: d.webDriverLink || ''
           }));
           return;
         }
       }
     } catch(e) {}
-    DRIVERS = DRIVERS_FALLBACK;
+    DRIVERS = [];
   }
   let currentView = 'product', currentCategory = 'all', searchKeyword = '';
   function getProductName(p) {
@@ -212,8 +254,8 @@
     if (productNameMap[pid]) return productNameMap[pid];
     return p['name_'+(currentLang==='zh-CN'?'zh':currentLang==='zh-TW'?'tw':'en')] || pid;
   }
-  function getDriverTitle(d) { return d['name_'+(currentLang==='zh-CN'?'zh':currentLang==='zh-TW'?'tw':'en')]; }
-  function getDriverDesc(d) { return d['desc_'+(currentLang==='zh-CN'?'zh':currentLang==='zh-TW'?'tw':'en')]; }
+  function getDriverName(d) { return d.name || ''; }
+  function getDriverDesc(d) { return d.description || ''; }
   function renderProducts() {
     const container = document.getElementById('productList');
     let filtered = PRODUCTS.filter(p => {
@@ -231,8 +273,63 @@
     document.querySelectorAll('.product').forEach(el => el.addEventListener('click', () => { window.location.href = 'product-detail.html?id=' + encodeURIComponent(el.dataset.productId); }));
   }
   function renderDrivers() {
-    document.getElementById('driverList').innerHTML = DRIVERS.map(d => `
-      <div class="driver"><h4>${getDriverTitle(d)} <span class="version">${d.version}</span></h4><p>${getDriverDesc(d)}</p><a href="${d.link}" class="dl-btn" download><img class="nav-icon" src="Pictures/components/下载.svg" alt="" style="width:16px;height:16px;filter:brightness(0)invert(1);vertical-align:middle;"> <span class="lang-zh">立即下载</span><span class="lang-tw">立即下載</span><span class="lang-en">Download</span></a></div>`).join('');
+    const container = document.getElementById('driverContainer');
+    if (!container) return;
+
+    // 按种类分组，固定显示顺序：键盘 → 鼠标 → 耳机
+    const typeOrder = ['键盘', '鼠标', '耳机'];
+    const typeLabels = {
+      '键盘': { zh: '<img src="Pictures/components/键盘.svg" alt="" style="width:24px;height:24px;vertical-align:middle;margin-right:6px;">键盘驱动', tw: '<img src="Pictures/components/键盘.svg" alt="" style="width:24px;height:24px;vertical-align:middle;margin-right:6px;">鍵盤驅動', en: '<img src="Pictures/components/键盘.svg" alt="" style="width:24px;height:24px;vertical-align:middle;margin-right:6px;">Keyboard Drivers' },
+      '鼠标': { zh: '<img src="Pictures/components/鼠标滚轮.svg" alt="" style="width:24px;height:24px;vertical-align:middle;margin-right:6px;">鼠标驱动', tw: '<img src="Pictures/components/鼠标滚轮.svg" alt="" style="width:24px;height:24px;vertical-align:middle;margin-right:6px;">滑鼠驅動', en: '<img src="Pictures/components/鼠标滚轮.svg" alt="" style="width:24px;height:24px;vertical-align:middle;margin-right:6px;">Mouse Drivers' },
+      '耳机': { zh: '<img src="Pictures/components/耳机.svg" alt="" style="width:24px;height:24px;vertical-align:middle;margin-right:6px;">耳机驱动', tw: '<img src="Pictures/components/耳机.svg" alt="" style="width:24px;height:24px;vertical-align:middle;margin-right:6px;">耳機驅動', en: '<img src="Pictures/components/耳机.svg" alt="" style="width:24px;height:24px;vertical-align:middle;margin-right:6px;">Headset Drivers' }
+    };
+    const groups = {};
+    typeOrder.forEach(t => { groups[t] = []; });
+    DRIVERS.forEach(d => {
+      const t = d.type || '键盘';
+      if (groups[t]) groups[t].push(d);
+      else groups[t] = [d];
+    });
+
+    const dlIcon = '<img class="nav-icon" src="Pictures/components/下载.svg" alt="">';
+    const webIcon = '<img class="nav-icon" src="Pictures/components/查看.svg" alt="">';
+
+    const langKey = currentLang === 'zh-TW' ? 'tw' : (currentLang === 'en' ? 'en' : 'zh');
+
+    let html = '';
+    typeOrder.forEach(type => {
+      const items = groups[type] || [];
+      if (items.length === 0) return;
+      const label = (typeLabels[type] && typeLabels[type][langKey]) || type;
+      html += '<div class="driver-section">';
+      html += '<div class="driver-section-title">' + label + '</div>';
+      html += '<div class="driver-grid">';
+      items.forEach(d => {
+        const model = d.model || '';
+        const name = getDriverName(d);
+        const version = d.version || '';
+        const desc = getDriverDesc(d);
+        const webLink = d.webDriverLink || '';
+        const fileLink = d.file || d.link || '';
+        const modelHTML = model ? '<div class="driver-model">' + model + '</div>' : '';
+        const versionRow = version ? '<div class="meta-row"><span class="meta-label">版本：</span><span class="meta-value">' + version + '</span></div>' : '';
+        const descRow = desc ? '<div class="meta-row"><span class="meta-label">说明：</span><span class="meta-value">' + desc + '</span></div>' : '';
+        html += '<div class="driver">'
+          + modelHTML
+          + '<div class="driver-name">' + name + '</div>'
+          + '<div class="driver-meta">' + descRow + versionRow + '</div>'
+          + '<div class="driver-actions">'
+          + '<a href="' + fileLink + '" class="dl-btn" download>' + dlIcon + ' <span class="lang-zh">立即下载</span><span class="lang-tw">立即下載</span><span class="lang-en">Download</span></a>'
+          + (webLink ? '<a href="' + webLink + '" class="dl-btn web-btn" target="_blank" rel="noopener">' + webIcon + ' <span class="lang-zh">网页版驱动</span><span class="lang-tw">網頁版驅動</span><span class="lang-en">Web Driver</span></a>' : '')
+          + '</div></div>';
+      });
+      html += '</div></div>';
+    });
+
+    if (!html) {
+      html = '<div class="driver-empty"><span class="lang-zh">📦 还未上传驱动文件</span><span class="lang-tw">📦 還未上傳驅動文件</span><span class="lang-en">📦 No driver files uploaded yet</span></div>';
+    }
+    container.innerHTML = html;
   }
   // 分类元数据（UI 配置，非产品数据）
   const CATEGORY_META = [

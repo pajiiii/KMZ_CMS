@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KOOMZE 内容管理系统</title>
+    <link rel="icon" type="image/png" href="../KOOMZE/favicon.png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -277,11 +278,13 @@
         },
         'driver': {
             fields: [
-                { key: 'type', label: '驱动类型', type: 'select', required: true, options: ['keyboard','mouse','headset'] },
-                { key: 'name', label: '驱动名称', type: 'text', required: true, placeholder: '如：键盘通用驱动中心' },
+                { key: 'type', label: '设备种类', type: 'select', required: true, options: ['键盘','鼠标','耳机'] },
+                { key: 'model', label: '适配型号', type: 'text', required: true, placeholder: '如：H75 / M7 / K9pAI' },
+                { key: 'name', label: '驱动名称', type: 'text', required: true, placeholder: '如：H75 键盘驱动 v2.3' },
                 { key: 'version', label: '版本号', type: 'text', required: false, placeholder: '如 v2.3.1' },
-                { key: 'description', label: '驱动描述', type: 'text', required: false, placeholder: '如：支持 A75 / A98 / K2 系列' },
-                { key: 'file', label: '驱动文件', type: 'file', required: true, placeholder: '选择本地驱动文件上传' }
+                { key: 'description', label: '驱动描述（适用说明等）', type: 'text', required: false, placeholder: '如：支持 Windows 10/11，含宏编程功能' },
+                { key: 'file', label: '驱动文件', type: 'file', required: true, placeholder: '选择本地驱动文件上传' },
+                { key: 'webDriverLink', label: '网页版驱动链接（可选）', type: 'url', required: false, placeholder: 'https://... 留空则不显示网页版驱动按钮' }
             ],
             label: '驱动文件'
         },
@@ -511,7 +514,8 @@
                 displayMeta = 'ID: ' + (item.productId || '') + ' | ' + (item.category || '');
             } else if (type === 'driver') {
                 displayName = item.name || '未命名';
-                displayMeta = '类型: ' + (item.type || '') + ' | 版本: ' + (item.version || '无');
+                displayMeta = '种类: ' + (item.type || '') + ' | 型号: ' + (item.model || '未填') + ' | 版本: ' + (item.version || '无');
+                if (item.webDriverLink) displayMeta += ' | 已配置网页版驱动';
             } else if (type === 'social') {
                 displayName = item.name || '未命名';
                 displayMeta = item.qrImage ? '已上传二维码' : '未上传二维码';
