@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KOOMZE 内容管理系统</title>
     <link rel="icon" type="image/png" href="../KOOMZE/favicon.png">
+    <!-- Quill 富文本编辑器 CDN -->
+    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -177,6 +180,81 @@
         /* Required badge */
         .required-badge { display: inline-flex; align-items: center; gap: 3px; color: #e33f3f; font-size: 12px; font-weight: 600; margin-left: 4px; }
         .required-badge img { width: 14px; height: 14px; object-fit: contain; filter: brightness(0) saturate(100%) invert(25%) sepia(85%) saturate(3200%) hue-rotate(345deg) brightness(95%) contrast(95%); }
+
+        /* ====== 颜色管理 ====== */
+        .color-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid #2e303a; }
+        .color-section .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .color-section .section-title { font-size: 14px; font-weight: 600; color: #c8c8d8; }
+        .color-add-btn {
+            padding: 6px 16px; border: 1px dashed #2e303a; border-radius: 8px;
+            background: transparent; color: #a8aab8; cursor: pointer;
+            font-size: 12px; font-weight: 600; transition: all 0.25s;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .color-add-btn:hover { border-color: #e33f3f; color: #e33f3f; background: rgba(227,63,63,0.08); }
+        .color-row {
+            display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px;
+            background: #0b0c10; border: 1px solid #2e303a; border-radius: 10px;
+            padding: 12px; position: relative;
+        }
+        .color-row .color-field { flex: 1; }
+        .color-row .color-field label { font-size: 12px; color: #6a6c7a; margin-bottom: 2px; }
+        .color-row .color-field input {
+            width: 100%; padding: 8px 12px; background: #1d1e26; border: 1px solid #2e303a;
+            border-radius: 8px; color: #e8e8f0; font-size: 13px; outline: none;
+        }
+        .color-row .color-field input:focus { border-color: #e33f3f; }
+        .color-row .color-upload-btn {
+            padding: 8px 12px; border: 1px dashed #2e303a; border-radius: 8px;
+            background: transparent; color: #a8aab8; cursor: pointer;
+            font-size: 12px; white-space: nowrap; transition: all 0.25s;
+            align-self: flex-end; margin-bottom: 0;
+        }
+        .color-row .color-upload-btn:hover { border-color: #e33f3f; color: #e33f3f; }
+        .color-row .color-preview {
+            width: 48px; height: 48px; object-fit: cover; border-radius: 6px;
+            border: 1px solid #2e303a; display: none; align-self: flex-end;
+        }
+        .color-row .color-preview.show { display: block; }
+        .color-row .color-remove-btn {
+            position: absolute; top: 8px; right: 8px;
+            width: 24px; height: 24px; border-radius: 50%; border: 1px solid #2e303a;
+            background: transparent; color: #a8aab8; cursor: pointer;
+            font-size: 14px; line-height: 22px; text-align: center;
+            transition: all 0.25s; padding: 0;
+        }
+        .color-row .color-remove-btn:hover { background: #2a1a1a; color: #e74c3c; border-color: #e74c3c; }
+        .color-empty { color: #6a6c7a; text-align: center; padding: 12px 0; font-size: 13px; }
+
+        /* ====== Quill 富文本编辑器 ====== */
+        .quill-wrapper { margin-bottom: 18px; }
+        .quill-wrapper label { display: block; font-weight: 500; font-size: 13px; margin-bottom: 4px; color: #c8c8d8; }
+        .quill-editor {
+            background: #0b0c10; border: 1px solid #2e303a; border-radius: 10px;
+            transition: border-color 0.25s;
+        }
+        .quill-editor:hover { border-color: #3e404a; }
+        .quill-editor:focus-within { border-color: #e33f3f; box-shadow: 0 0 0 3px rgba(227,63,63,0.2); }
+        .quill-editor .ql-toolbar.ql-snow {
+            border: none; border-bottom: 1px solid #2e303a;
+            background: #1d1e26; border-radius: 10px 10px 0 0;
+        }
+        .quill-editor .ql-toolbar.ql-snow .ql-stroke { stroke: #a8aab8; }
+        .quill-editor .ql-toolbar.ql-snow .ql-fill { fill: #a8aab8; }
+        .quill-editor .ql-toolbar.ql-snow .ql-picker { color: #a8aab8; }
+        .quill-editor .ql-toolbar.ql-snow .ql-picker-options { background: #1d1e26; border-color: #2e303a; }
+        .quill-editor .ql-toolbar.ql-snow button:hover .ql-stroke,
+        .quill-editor .ql-toolbar.ql-snow button.ql-active .ql-stroke { stroke: #e33f3f; }
+        .quill-editor .ql-toolbar.ql-snow button:hover .ql-fill,
+        .quill-editor .ql-toolbar.ql-snow button.ql-active .ql-fill { fill: #e33f3f; }
+        .quill-editor .ql-toolbar.ql-snow .ql-picker-label:hover,
+        .quill-editor .ql-toolbar.ql-snow .ql-picker-label.ql-active { color: #e33f3f; }
+        .quill-editor .ql-container.ql-snow {
+            border: none; font-family: inherit; font-size: 14px; color: #e8e8f0;
+            border-radius: 0 0 10px 10px; min-height: 200px;
+        }
+        .quill-editor .ql-editor { min-height: 200px; line-height: 1.7; }
+        .quill-editor .ql-editor.ql-blank::before { color: #6a6c7a; font-style: normal; }
     </style>
 </head>
 <body>
@@ -360,14 +438,16 @@
         'product-detail': {
             fields: [
                 { key: 'productId', label: '关联产品 ID', type: 'pid', required: true, placeholder: '输入产品 ID（如 H75）' },
-                { key: 'image', label: '详情页主图', type: 'image', required: true, placeholder: 'https://...' },
+                { key: 'image', label: '详情页默认主图（颜色列表为空时使用）', type: 'image', required: true, placeholder: 'https://...' },
                 { key: 'buyLink1', label: '购买链接 1（如淘宝）', type: 'url', required: false, placeholder: 'https://...' },
                 { key: 'buyLink2', label: '购买链接 2（如京东）', type: 'url', required: false, placeholder: 'https://...' },
                 { key: 'buyLink3', label: '购买链接 3（如拼多多）', type: 'url', required: false, placeholder: 'https://...' },
                 { key: 'buyLink4', label: '购买链接 4（可选）', type: 'url', required: false, placeholder: 'https://...' },
                 { key: 'buyLink5', label: '购买链接 5（可选）', type: 'url', required: false, placeholder: 'https://...' }
             ],
-            label: '产品详情页'
+            label: '产品详情页',
+            hasColors: true,       // 标记：需要渲染颜色管理区域
+            hasIntroduction: true  // 标记：需要渲染富文本编辑器
         },
         'driver': {
             fields: [
@@ -435,6 +515,36 @@
             }
         });
         formFields.innerHTML = html;
+
+        // ====== 产品详情页专属：颜色管理区域 ======
+        if (config.hasColors) {
+            const colorSectionHTML = `
+                <div class="color-section" id="colorSection">
+                    <div class="section-header">
+                        <span class="section-title">🎨 产品颜色选项（可添加多个颜色，每个颜色对应一张产品图）</span>
+                        <button type="button" class="color-add-btn" id="addColorBtn">+ 添加颜色</button>
+                    </div>
+                    <div id="colorList"><div class="color-empty">暂无颜色，点击「添加颜色」开始</div></div>
+                </div>`;
+            formFields.insertAdjacentHTML('beforeend', colorSectionHTML);
+            // 绑定添加颜色按钮
+            document.getElementById('addColorBtn').addEventListener('click', () => addColorRow());
+            // 初始化颜色列表容器引用
+            window._colorListEl = document.getElementById('colorList');
+        }
+
+        // ====== 产品详情页专属：Quill 富文本编辑器 ======
+        if (config.hasIntroduction) {
+            const quillHTML = `
+                <div class="quill-wrapper">
+                    <label>产品介绍 <span style="color:#6a6c7a;font-weight:400;">（富文本：支持加粗、列表、链接等格式）</span></label>
+                    <div class="quill-editor" id="quillEditor"></div>
+                    <div class="field-hint">可粘贴 Word/网页内容，或直接编辑。介绍文字包含产品参数、特点、规格等信息。</div>
+                </div>`;
+            formFields.insertAdjacentHTML('beforeend', quillHTML);
+            // 初始化 Quill 编辑器
+            initQuill();
+        }
 
         // 绑定本地上传（图片 / 驱动文件）
         document.querySelectorAll('.upload-btn').forEach(btn => {
@@ -569,9 +679,154 @@
         fileInput.click();
     }
 
+    // ========== Quill 富文本编辑器管理 ==========
+    let quillInstance = null;
+
+    function initQuill() {
+        // 先销毁旧实例（避免切换标签时重复初始化）
+        if (quillInstance) {
+            const oldContainer = document.getElementById('quillEditor');
+            if (oldContainer) oldContainer.innerHTML = '';
+            quillInstance = null;
+        }
+        const editorEl = document.getElementById('quillEditor');
+        if (!editorEl) return;
+        quillInstance = new Quill('#quillEditor', {
+            theme: 'snow',
+            placeholder: '请输入产品介绍文字（支持加粗、列表、链接等格式）…',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                    [{ 'header': [2, 3, false] }],
+                    ['link', 'clean']
+                ]
+            }
+        });
+    }
+
+    function getQuillContent() {
+        return quillInstance ? quillInstance.root.innerHTML : '';
+    }
+
+    function setQuillContent(html) {
+        if (quillInstance && html) {
+            quillInstance.root.innerHTML = html;
+        }
+    }
+
+    // ========== 颜色动态管理 ==========
+    function addColorRow(colorData) {
+        const listEl = window._colorListEl || document.getElementById('colorList');
+        if (!listEl) return;
+        const emptyEl = listEl.querySelector('.color-empty');
+        if (emptyEl) emptyEl.remove();
+
+        const row = document.createElement('div');
+        row.className = 'color-row';
+        row.innerHTML = `
+            <div class="color-field" style="flex:2;">
+                <label>颜色名称 <span style="color:#e33f3f;">*</span></label>
+                <input type="text" class="color-name-input" placeholder="如：星空黑" value="${escapeHtml(colorData?.name || '')}">
+            </div>
+            <div class="color-field" style="flex:3;">
+                <label>颜色图片 URL <span style="color:#e33f3f;">*</span></label>
+                <input type="text" class="color-image-input" placeholder="https://... 或点击右侧上传" value="${escapeHtml(colorData?.image || '')}">
+            </div>
+            <button type="button" class="color-upload-btn">📁 上传</button>
+            <img class="color-preview${colorData?.image ? ' show' : ''}" src="${escapeHtml(colorData?.image || '')}" alt="预览">
+            <button type="button" class="color-remove-btn" title="删除此颜色">×</button>
+        `;
+        listEl.appendChild(row);
+
+        row.querySelector('.color-upload-btn').addEventListener('click', function() {
+            triggerColorImageUpload(this, row);
+        });
+        row.querySelector('.color-remove-btn').addEventListener('click', function() {
+            row.remove();
+            if (listEl.querySelectorAll('.color-row').length === 0) {
+                listEl.innerHTML = '<div class="color-empty">暂无颜色，点击「添加颜色」开始</div>';
+            }
+        });
+        const imgInput = row.querySelector('.color-image-input');
+        const preview = row.querySelector('.color-preview');
+        imgInput.addEventListener('input', function() {
+            const url = imgInput.value.trim();
+            if (url) { preview.src = url; preview.classList.add('show'); }
+            else preview.classList.remove('show');
+        });
+    }
+
+    function triggerColorImageUpload(btn, row) {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+        fileInput.addEventListener('change', async () => {
+            const file = fileInput.files[0];
+            if (!file) { document.body.removeChild(fileInput); return; }
+            btn.textContent = '⏳'; btn.disabled = true;
+            const formData = new FormData(); formData.append('image', file);
+            try {
+                const res = await authFetch('/api/content/upload', { method: 'POST', body: formData });
+                if (res.ok) {
+                    const data = await res.json();
+                    const imgInput = row.querySelector('.color-image-input');
+                    const preview = row.querySelector('.color-preview');
+                    if (imgInput) { imgInput.value = data.url; imgInput.dispatchEvent(new Event('input')); }
+                    if (preview) { preview.src = data.url; preview.classList.add('show'); }
+                    showMessage('颜色图片上传成功！', 'success');
+                } else {
+                    let errMsg = '上传失败';
+                    try { const errData = await res.json(); errMsg = errData.error || errMsg; } catch(e){}
+                    throw new Error(errMsg);
+                }
+            } catch(err) {
+                showMessage('颜色图片上传失败: ' + (err.message || '网络错误'), 'error');
+            }
+            btn.textContent = '📁 上传'; btn.disabled = false;
+            document.body.removeChild(fileInput);
+        });
+        fileInput.click();
+    }
+
+    function getColorsData() {
+        const rows = document.querySelectorAll('#colorList .color-row');
+        const colors = [];
+        rows.forEach(row => {
+            const name = row.querySelector('.color-name-input')?.value?.trim();
+            const image = row.querySelector('.color-image-input')?.value?.trim();
+            if (name && image) colors.push({ name, image });
+        });
+        return colors;
+    }
+
+    function setColorsData(colors) {
+        const listEl = document.getElementById('colorList');
+        if (!listEl) return;
+        listEl.innerHTML = '';
+        if (!colors || colors.length === 0) {
+            listEl.innerHTML = '<div class="color-empty">暂无颜色，点击「添加颜色」开始</div>';
+            return;
+        }
+        colors.forEach(c => addColorRow(c));
+    }
+
+    function clearColors() {
+        const listEl = document.getElementById('colorList');
+        if (!listEl) return;
+        listEl.innerHTML = '<div class="color-empty">暂无颜色，点击「添加颜色」开始</div>';
+    }
+
     function getFormData(type) {
         const config = FIELD_CONFIGS[type]; const data = {};
         config.fields.forEach(f => { const el = document.getElementById('field_' + f.key); data[f.key] = el ? el.value.trim() : ''; });
+        // 产品详情页专属：收集颜色和介绍
+        if (config.hasColors) {
+            data.colors = getColorsData();
+        }
+        if (config.hasIntroduction) {
+            data.introduction = getQuillContent();
+        }
         return data;
     }
 
@@ -586,6 +841,9 @@
         });
         document.querySelectorAll('.pid-suggest').forEach(el => el.classList.remove('show'));
         const hintEl = document.getElementById('hint_productId'); if (hintEl) hintEl.style.display = 'none';
+        // 清空颜色和 Quill
+        if (config.hasColors) clearColors();
+        if (config.hasIntroduction) setQuillContent('');
     }
 
     function showMessage(text, type) {
@@ -635,6 +893,8 @@
                 if (item.type) displayMeta += ' | ' + escapeHtml(item.type);
                 if (item.order !== undefined && item.order !== null) displayMeta += ' | 排序: ' + item.order;
                 if (type === 'product-detail' && (item.buyLink1 || item.buyLink2 || item.buyLink3)) displayMeta += ' | 已配置购买链接';
+                if (type === 'product-detail' && item.colors && item.colors.length > 0) displayMeta += ' | 🎨 ' + item.colors.length + '种颜色';
+                if (type === 'product-detail' && item.introduction) displayMeta += ' | 📝 已填写介绍';
             }
             html += '<div class="item" data-id="' + item._id + '"><div class="info"><span class="name">' + escapeHtml(displayName) + '</span><span class="meta">' + displayMeta + '</span></div><button class="del-btn" data-id="' + item._id + '" data-type="' + type + '"><img class="admin-icon-sm" src="../Pictures/admin_components/删除.svg" alt="删除"></button></div>';
         });
@@ -712,6 +972,9 @@
             const isDriver = btn.dataset.type === 'driver';
             btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> ' + (isDriver ? '选择文件' : '本地上传');
         });
+        // 产品详情页专属：回填颜色和介绍
+        if (config.hasColors) setColorsData(data.colors || []);
+        if (config.hasIntroduction) setQuillContent(data.introduction || '');
     }
 
     // ========== 取消编辑 ==========
@@ -722,12 +985,15 @@
         submitBtnText.textContent = '上传';
         cancelEditBtn2.style.display = 'none';
         document.querySelectorAll('.item').forEach(el => el.classList.remove('editing'));
-        // 清空所有上传按钮状态
         document.querySelectorAll('.upload-btn').forEach(btn => {
             btn.classList.remove('done');
             const isDriver = btn.dataset.type === 'driver';
             btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> ' + (isDriver ? '选择文件' : '本地上传');
         });
+        // 清理颜色和 Quill
+        const config = FIELD_CONFIGS[currentType];
+        if (config && config.hasColors) clearColors();
+        if (config && config.hasIntroduction) setQuillContent('');
     }
 
     function escapeHtml(text) {
