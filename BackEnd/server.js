@@ -44,11 +44,16 @@ function generateToken() {
  *   3) Authorization: Basic <base64>（兜底，直接浏览器访问时的标准 Basic Auth）
  */
 function authGuard(req, res, next) {
-  // 检查是否需要保护：管理页面 + API 路由
-  const needsAuth =
-    req.path === '/admin.html' ||
-    req.path.startsWith('/admin') ||
-    req.path.startsWith('/api/content');
+  // 检查是否需要保护：管理页面 + API 写操作
+  // GET 请求公开（前台页面需要读取数据展示），POST/PUT/DELETE 需认证
+  const isApiContent = req.path.startsWith('/api/content');
+  const isAdminPath = req.path === '/admin.html' || req.path.startsWith('/admin');
+
+  if (isApiContent && req.method === 'GET') {
+    return next(); // 前台页面读取内容，不需要认证
+  }
+
+  const needsAuth = isAdminPath || isApiContent;
 
   if (!needsAuth) {
     return next();
