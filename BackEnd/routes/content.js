@@ -103,6 +103,20 @@ const collections = {
   'social': SocialPlatform
 };
 
+// 获取单条数据（用于编辑回填）— 必须放在 GET /:type 前面，避免 /:type 抢先匹配
+router.get('/:type/:id', async (req, res) => {
+  const Model = collections[req.params.type];
+  if (!Model) return res.status(400).json({ error: '无效的数据类型' });
+  try {
+    const item = await Model.findById(req.params.id);
+    if (!item) return res.status(404).json({ error: '未找到' });
+    res.json(item);
+  } catch (err) {
+    console.error('[Content] GET /' + req.params.type + '/' + req.params.id + ' 查询失败:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 获取指定类型的数据（支持 ?category= 筛选 product / product-tag）
 router.get('/:type', async (req, res) => {
   const Model = collections[req.params.type];
@@ -162,6 +176,28 @@ router.delete('/:type/:id', async (req, res) => {
     res.json({ message: '删除成功' });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// 更新指定类型的数据（编辑功能）
+router.put('/:type/:id', async (req, res) => {
+  const Model = collections[req.params.type];
+  if (!Model) return res.status(400).json({ error: '无效的数据类型' });
+  try {
+    const updated = await Model.findByIdAndUpdate(req.params.id, req.body, {
+      returnDocument: 'after',  // 返回更新后的文档（替代已弃用的 new: true）
+      runValidators: true       // 执行 Mongoose 验证
+    });
+    if (!updated) return res.status(404).json({ error: '未找到' });
+    console.log('[Content] PUT /' + req.params.type + '/' + req.params.id + ' 更新成功');
+    res.json(updated);
+  } catch (err) {
+    console.error('[Content] PUT 更新失败:', err.message);
+    if (err.name === 'ValidationError') {
+      const fields = Object.keys(err.errors).join(', ');
+      return res.status(400).json({ error: '字段验证失败: ' + fields + ' — ' + err.message });
+    }
+    res.status(400).json({ error: err.message });
   }
 });
 

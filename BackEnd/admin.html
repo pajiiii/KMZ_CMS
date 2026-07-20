@@ -86,6 +86,36 @@
         }
         .img-preview.show { display: block; }
 
+        /* ====== 编辑模式 ====== */
+        .edit-indicator {
+            display: none; align-items: center; gap: 10px;
+            margin-bottom: 12px; padding: 10px 16px;
+            background: rgba(227,63,63,0.12); border-left: 3px solid #e33f3f;
+            border-radius: 6px; font-size: 13px; color: #e33f3f; font-weight: 600;
+        }
+        .edit-indicator.show { display: flex; }
+        .cancel-edit-btn {
+            margin-left: auto; padding: 6px 14px; border: 1px solid #e33f3f;
+            border-radius: 6px; background: transparent; color: #e33f3f;
+            cursor: pointer; font-size: 12px; transition: all 0.2s;
+        }
+        .cancel-edit-btn:hover { background: #e33f3f; color: #fff; }
+        .item.editing {
+            border-color: #e33f3f; background: rgba(227,63,63,0.08);
+            cursor: default;
+        }
+        .item:not(.editing) { cursor: pointer; }
+        .item:not(.editing):hover { border-color: #e33f3f; }
+        .submit-row { display: flex; gap: 10px; }
+        .submit-row .btn { flex: 1; }
+        .submit-row .btn-cancel {
+            flex: 0 0 auto; padding: 12px 24px;
+            border: 1px solid #2e303a; border-radius: 12px;
+            background: transparent; color: #a8aab8; cursor: pointer;
+            font-weight: 600; font-size: 15px; transition: all 0.25s;
+        }
+        .submit-row .btn-cancel:hover { border-color: #e33f3f; color: #e33f3f; }
+
         /* ====== 产品对照表 ====== */
         .lookup-section {
             margin-top: 32px; border-top: 1px solid #2e303a; padding-top: 20px;
@@ -153,7 +183,10 @@
 
 <div class="container">
     <h1><img class="admin-icon-lg" src="../Pictures/admin_components/管理员.svg" alt=""> KOOMZE 网站内容管理界面</h1>
-    <div class="subtitle">先录入「产品基础信息」，再上传各区域的图片内容</div>
+    <div class="subtitle">
+        先录入「产品基础信息」，再上传各区域的图片内容
+        <button id="logoutBtn" style="float:right;padding:4px 14px;border:1px solid #e33f3f;border-radius:14px;background:transparent;color:#e33f3f;cursor:pointer;font-size:12px;transition:all .25s;">🚪 退出登录</button>
+    </div>
 
     <!-- 类型切换标签 -->
     <div class="tabs" id="tabContainer">
@@ -169,8 +202,15 @@
 
     <!-- 表单区域 -->
     <form id="uploadForm">
+        <div id="editIndicator" class="edit-indicator">
+            ✏️ 正在编辑：<span id="editItemName"></span>
+            <button type="button" class="cancel-edit-btn" id="cancelEditBtn">取消编辑 / 新建</button>
+        </div>
         <div id="formFields"><!-- 由 JS 动态渲染 --></div>
-        <button type="submit" class="btn"><img class="admin-icon" src="../Pictures/admin_components/上传.svg" alt="" style="filter:brightness(0)invert(1);"> 上传</button>
+        <div class="submit-row">
+            <button type="submit" class="btn" id="submitBtn"><img class="admin-icon" src="../Pictures/admin_components/上传.svg" alt="" style="filter:brightness(0)invert(1);"> <span id="submitBtnText">上传</span></button>
+            <button type="button" class="btn-cancel" id="cancelEditBtn2" style="display:none;">取消编辑</button>
+        </div>
     </form>
 
     <div id="message"></div>
@@ -201,12 +241,65 @@
 </div>
 
 <script>
+    // ========== 🔐 令牌认证系统 ==========
+    // 从 sessionStorage 获取 Bearer 令牌（用于 API 调用）
+    // 注意：页面加载时的认证由 HttpOnly Cookie 处理（authGuard 中间件验证）
+    // sessionStorage 令牌仅用于 AJAX 请求的 Authorization 头
+    const AUTH_TOKEN = sessionStorage.getItem('admin_token');
+
+    /**
+     * 带认证的 fetch 封装
+     * 优先使用 Bearer 令牌；如无令牌则依赖 Cookie 认证（浏览器自动携带）
+     * 自动处理 401 过期 → 清除令牌并跳转登录
+     */
+    async function authFetch(url, options = {}) {
+        const headers = options.headers || {};
+        // 如果有 Bearer 令牌，添加到请求头
+        if (AUTH_TOKEN) {
+            headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+        }
+        // 如果 body 是 FormData，不设置 Content-Type（让浏览器自动设置 multipart boundary）
+        if (!(options.body instanceof FormData)) {
+            headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+        }
+        const res = await fetch(url, { ...options, headers });
+        // 令牌过期或无效 → 清除令牌并跳转登录
+        if (res.status === 401) {
+            sessionStorage.removeItem('admin_token');
+            try {
+                const data = await res.json();
+                if (data.needLogin) {
+                    alert('登录已过期，请重新登录');
+                    window.location.replace('/');
+                    throw new Error('需要重新登录');
+                }
+            } catch (e) {
+                if (e.message === '需要重新登录') throw e;
+                // 可能是页面导航触发的 401（非 JSON 响应），也跳转登录
+                window.location.replace('/');
+                throw new Error('需要重新登录');
+            }
+        }
+        return res;
+    }
+
+    // ========== 退出登录 ==========
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        if (!confirm('确定要退出登录吗？')) return;
+        try {
+            await authFetch('/api/auth/logout', { method: 'POST' });
+        } catch (e) { /* 忽略网络错误 */ }
+        sessionStorage.removeItem('admin_token');
+        // 跳转到根路径，authGuard 会检测 Cookie 已清除 → 显示登录页
+        window.location.replace('/');
+    });
+
     // ========== 全局产品映射 ==========
     let productMap = {}; // { productId: { name, category, _id } }
 
     async function loadProductMap() {
         try {
-            const res = await fetch('/api/content/product');
+            const res = await authFetch('/api/content/product');
             if (res.ok) {
                 const data = await res.json();
                 productMap = {};
@@ -299,6 +392,7 @@
     };
 
     let currentType = 'product';
+    let editingId = null; // 正在编辑的记录 _id，null 表示新建模式
 
     const tabContainer = document.getElementById('tabContainer');
     const formFields = document.getElementById('formFields');
@@ -306,10 +400,16 @@
     const messageDiv = document.getElementById('message');
     const listContainer = document.getElementById('listContainer');
     const refreshBtn = document.getElementById('refreshBtn');
+    const editIndicator = document.getElementById('editIndicator');
+    const editItemName = document.getElementById('editItemName');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    const cancelEditBtn2 = document.getElementById('cancelEditBtn2');
+    const submitBtnText = document.getElementById('submitBtnText');
 
     // ========== 标签切换 ==========
     function switchTab(type) {
         currentType = type;
+        cancelEdit(); // 切换标签时退出编辑模式
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.type === type));
         renderForm(type);
         loadList(type);
@@ -411,7 +511,7 @@
             btn.classList.add('uploading'); btn.textContent = '上传中...';
             const formData = new FormData(); formData.append('image', file);
             try {
-                const res = await fetch('/api/content/upload', { method: 'POST', body: formData });
+                const res = await authFetch('/api/content/upload', { method: 'POST', body: formData });
                 if (res.ok) {
                     const data = await res.json();
                     const urlInput = document.getElementById(targetId);
@@ -447,7 +547,7 @@
             btn.classList.add('uploading'); btn.textContent = '上传中...';
             const formData = new FormData(); formData.append('file', file);
             try {
-                const res = await fetch('/api/content/upload-driver', { method: 'POST', body: formData });
+                const res = await authFetch('/api/content/upload-driver', { method: 'POST', body: formData });
                 if (res.ok) {
                     const data = await res.json();
                     const urlInput = document.getElementById(targetId);
@@ -497,7 +597,7 @@
     async function loadList(type) {
         listContainer.innerHTML = '<div class="empty">加载中...</div>';
         try {
-            const res = await fetch('/api/content/' + type);
+            const res = await authFetch('/api/content/' + type);
             if (!res.ok) throw new Error('加载失败');
             renderList(await res.json(), type);
         } catch(err) { listContainer.innerHTML = '<div class="empty">' + err.message + '</div>'; }
@@ -515,7 +615,7 @@
             } else if (type === 'driver') {
                 displayName = item.name || '未命名';
                 displayMeta = '种类: ' + (item.type || '') + ' | 型号: ' + (item.model || '未填') + ' | 版本: ' + (item.version || '无');
-                if (item.webDriverLink) displayMeta += ' | 已配置网页版驱动';
+                if (item.webDriverLink) displayMeta += ' | ✅ 已配置网页版驱动'; else displayMeta += ' | ⚠️ 未配置网页版驱动';
             } else if (type === 'social') {
                 displayName = item.name || '未命名';
                 displayMeta = item.qrImage ? '已上传二维码' : '未上传二维码';
@@ -539,16 +639,94 @@
             html += '<div class="item" data-id="' + item._id + '"><div class="info"><span class="name">' + escapeHtml(displayName) + '</span><span class="meta">' + displayMeta + '</span></div><button class="del-btn" data-id="' + item._id + '" data-type="' + type + '"><img class="admin-icon-sm" src="../Pictures/admin_components/删除.svg" alt="删除"></button></div>';
         });
         listContainer.innerHTML = html;
+
+        // 【编辑】点击列表项进入编辑模式
+        document.querySelectorAll('.item').forEach(itemEl => {
+            itemEl.addEventListener('click', async (e) => {
+                // 如果点击的是删除按钮，不触发编辑
+                if (e.target.closest('.del-btn')) return;
+                const id = itemEl.dataset.id;
+                try {
+                    const res = await authFetch('/api/content/' + type + '/' + id);
+                    if (!res.ok) throw new Error('加载失败');
+                    const data = await res.json();
+                    editingId = data._id;
+                    populateForm(type, data);
+                    // 高亮当前编辑项
+                    document.querySelectorAll('.item').forEach(el => el.classList.remove('editing'));
+                    itemEl.classList.add('editing');
+                    // 显示编辑指示器
+                    editItemName.textContent = data.name || data.productId || '(未命名)';
+                    editIndicator.classList.add('show');
+                    submitBtnText.textContent = '更新';
+                    cancelEditBtn2.style.display = 'inline-flex';
+                } catch(err) { showMessage('加载数据失败: ' + err.message, 'error'); }
+            });
+        });
+
+        // 如果正在编辑某条记录，高亮对应项
+        if (editingId) {
+            const activeItem = document.querySelector('.item[data-id="' + editingId + '"]');
+            if (activeItem) activeItem.classList.add('editing');
+        }
+
         document.querySelectorAll('.del-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation(); // 阻止冒泡到 item 的编辑事件
                 const id = btn.dataset.id, t = btn.dataset.type;
                 if (!confirm('确定删除吗？此操作不可恢复。')) return;
                 try {
-                    const res = await fetch('/api/content/' + t + '/' + id, { method: 'DELETE' });
-                    if (res.ok) { showMessage('删除成功'); await loadProductMap(); loadList(t); refreshLookupTable(); }
+                    const res = await authFetch('/api/content/' + t + '/' + id, { method: 'DELETE' });
+                    if (res.ok) {
+                        // 如果删除的是正在编辑的记录，退出编辑模式
+                        if (editingId === id) cancelEdit();
+                        showMessage('删除成功'); await loadProductMap(); loadList(t); refreshLookupTable();
+                    }
                     else { const err = await res.json(); showMessage((err.error || '删除失败'), 'error'); }
                 } catch(err) { showMessage('网络错误', 'error'); }
             });
+        });
+    }
+
+    // ========== 填充表单（编辑模式） ==========
+    function populateForm(type, data) {
+        const config = FIELD_CONFIGS[type];
+        if (!config) return;
+        config.fields.forEach(f => {
+            const el = document.getElementById('field_' + f.key);
+            if (!el) return;
+            const val = data[f.key];
+            if (f.type === 'select') {
+                el.value = val || '';
+            } else {
+                el.value = val !== undefined && val !== null ? val : '';
+            }
+            // 触发图片预览更新
+            if (f.type === 'image' && val) {
+                el.dispatchEvent(new Event('input'));
+            }
+        });
+        // 重置上传按钮状态
+        document.querySelectorAll('.upload-btn').forEach(btn => {
+            btn.classList.remove('done');
+            const isDriver = btn.dataset.type === 'driver';
+            btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> ' + (isDriver ? '选择文件' : '本地上传');
+        });
+    }
+
+    // ========== 取消编辑 ==========
+    function cancelEdit() {
+        editingId = null;
+        editIndicator.classList.remove('show');
+        editItemName.textContent = '';
+        submitBtnText.textContent = '上传';
+        cancelEditBtn2.style.display = 'none';
+        document.querySelectorAll('.item').forEach(el => el.classList.remove('editing'));
+        // 清空所有上传按钮状态
+        document.querySelectorAll('.upload-btn').forEach(btn => {
+            btn.classList.remove('done');
+            const isDriver = btn.dataset.type === 'driver';
+            btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> ' + (isDriver ? '选择文件' : '本地上传');
         });
     }
 
@@ -571,26 +749,36 @@
             }
         }
         try {
-            const res = await fetch('/api/content/' + currentType, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+            let url = '/api/content/' + currentType;
+            let method = 'POST';
+            if (editingId) {
+                url += '/' + editingId;
+                method = 'PUT';
+            }
+            const res = await authFetch(url, {
+                method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
             });
             if (res.ok) {
-                showMessage(config.label + ' 上传成功！');
+                showMessage(config.label + (editingId ? ' 更新成功！' : ' 上传成功！'));
+                cancelEdit(); // 退出编辑模式
                 resetForm(); await loadProductMap(); loadList(currentType); refreshLookupTable();
             } else {
                 const err = await res.json();
                 let errMsg = err.error || '未知错误';
-                // 给出更友好的提示
                 if (errMsg.includes('ValidationError') || errMsg.includes('字段验证失败')) {
                     errMsg = '数据验证失败：' + errMsg + ' — 请检查所有必填字段是否已填写';
                 }
-                showMessage('上传失败: ' + errMsg, 'error');
+                showMessage((editingId ? '更新' : '上传') + '失败: ' + errMsg, 'error');
             }
         } catch(err) { showMessage('网络请求失败', 'error'); }
     });
 
     tabContainer.addEventListener('click', e => { const btn = e.target.closest('.tab-btn'); if (btn) switchTab(btn.dataset.type); });
     refreshBtn.addEventListener('click', () => loadList(currentType));
+
+    // 取消编辑按钮
+    cancelEditBtn.addEventListener('click', () => { cancelEdit(); resetForm(); });
+    cancelEditBtn2.addEventListener('click', () => { cancelEdit(); resetForm(); });
 
     // ============================================================
     //  产品 ID ↔ 名称 对照表
@@ -616,7 +804,7 @@
     async function searchLookup(query) {
         lookupBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#6a6c7a;">搜索中...</td></tr>';
         try {
-            const res = await fetch('/api/content/products/search?q=' + encodeURIComponent(query));
+            const res = await authFetch('/api/content/products/search?q=' + encodeURIComponent(query));
             if (res.ok) { const data = await res.json(); renderLookupTable(data); }
         } catch(e) { lookupBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#e74c3c;">搜索失败</td></tr>'; }
     }
