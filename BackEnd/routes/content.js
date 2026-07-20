@@ -103,6 +103,29 @@ const collections = {
   'social': SocialPlatform
 };
 
+// ===== 产品名称查询（供 admin 对照表 + 前端页面使用） =====
+// ⚠️ 必须放在 GET /:type/:id 前面，避免 /products/search 被 /:type/:id 抢先匹配
+
+// 按 productId 或 name 搜索产品
+router.get('/products/search', async (req, res) => {
+  const { q, id } = req.query;
+  try {
+    let filter = {};
+    if (id) {
+      // 精确按 productId 查找
+      filter.productId = id;
+    } else if (q) {
+      // 模糊搜索：匹配 productId 或 name
+      const regex = new RegExp(q, 'i');
+      filter = { $or: [{ productId: regex }, { name: regex }] };
+    }
+    const data = await Product.find(filter).sort({ productId: 1 });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 获取单条数据（用于编辑回填）— 必须放在 GET /:type 前面，避免 /:type 抢先匹配
 router.get('/:type/:id', async (req, res) => {
   const Model = collections[req.params.type];
@@ -166,14 +189,67 @@ router.post('/:type', async (req, res) => {
   }
 });
 
-// 删除指定类型的数据
+// ===== 辅助函数：递归提取文档中所有 /uploads/ 开头的文件路径 =====
+function getUploadPaths(doc) {
+  if (!doc) return [];
+  const paths = [];
+  const docObj = doc.toObject ? doc.toObject() : doc;
+
+  function collect(obj) {
+    if (!obj || typeof obj !== 'object') return;
+    for (const val of Object.values(obj)) {
+      if (typeof val === 'string' && val.startsWith('/uploads/')) {
+        paths.push(val);
+      } else if (Array.isArray(val)) {
+        val.forEach(item => collect(item));
+      } else if (typeof val === 'object' && val !== null) {
+        collect(val);
+      }
+    }
+  }
+
+  collect(docObj);
+  return [...new Set(paths)]; // 去重
+}
+
+// ===== 辅助函数：从磁盘删除文件 =====
+function deleteUploadedFiles(filePaths) {
+  const uploadDir = path.join(__dirname, '..', 'uploads');
+  for (const urlPath of filePaths) {
+    const filename = path.basename(urlPath);
+    const fullPath = path.join(uploadDir, filename);
+    try {
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+        console.log('[Cleanup] 🗑️ 已删除磁盘文件:', filename);
+      } else {
+        console.log('[Cleanup] ⚠️ 文件不存在，跳过:', filename);
+      }
+    } catch (err) {
+      console.error('[Cleanup] ❌ 删除文件失败:', filename, err.message);
+    }
+  }
+}
+
+// 删除指定类型的数据（同时清理关联的上传文件）
 router.delete('/:type/:id', async (req, res) => {
   const Model = collections[req.params.type];
   if (!Model) return res.status(400).json({ error: '无效的数据类型' });
   try {
-    const deleted = await Model.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ error: '未找到' });
-    res.json({ message: '删除成功' });
+    // 先查找记录，获取文件路径后再删除
+    const doc = await Model.findById(req.params.id);
+    if (!doc) return res.status(404).json({ error: '未找到' });
+
+    // 清理关联的 /uploads/ 文件
+    const uploadPaths = getUploadPaths(doc);
+    if (uploadPaths.length > 0) {
+      console.log('[Content] DELETE 清理 ' + uploadPaths.length + ' 个文件:', uploadPaths);
+      deleteUploadedFiles(uploadPaths);
+    }
+
+    // 删除数据库记录
+    await Model.findByIdAndDelete(req.params.id);
+    res.json({ message: '删除成功', cleanedFiles: uploadPaths.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -198,28 +274,6 @@ router.put('/:type/:id', async (req, res) => {
       return res.status(400).json({ error: '字段验证失败: ' + fields + ' — ' + err.message });
     }
     res.status(400).json({ error: err.message });
-  }
-});
-
-// ===== 产品名称查询（供 admin 对照表 + 前端页面使用） =====
-
-// 按 productId 或 name 搜索产品
-router.get('/products/search', async (req, res) => {
-  const { q, id } = req.query;
-  try {
-    let filter = {};
-    if (id) {
-      // 精确按 productId 查找
-      filter.productId = id;
-    } else if (q) {
-      // 模糊搜索：匹配 productId 或 name
-      const regex = new RegExp(q, 'i');
-      filter = { $or: [{ productId: regex }, { name: regex }] };
-    }
-    const data = await Product.find(filter).sort({ productId: 1 });
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
 });
 
