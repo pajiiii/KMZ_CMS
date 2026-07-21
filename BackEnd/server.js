@@ -44,6 +44,7 @@ function generateToken() {
  *   3) Authorization: Basic <base64>（兜底，直接浏览器访问时的标准 Basic Auth）
  */
 function authGuard(req, res, next) {
+  console.log(`[AuthGuard] 收到请求: ${req.method} ${req.path}`);
   // 检查是否需要保护：管理页面 + API 写操作
   // GET 请求公开（前台页面需要读取数据展示），POST/PUT/DELETE 需认证
   const isApiContent = req.path.startsWith('/api/content');
