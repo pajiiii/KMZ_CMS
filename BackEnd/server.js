@@ -282,7 +282,8 @@ app.post('/api/auth/logout', authGuard, (req, res) => {
 app.get('/api/auth/check', authGuard, (req, res) => {
   res.json({ valid: true, user: req.adminUser });
 });
-
+// ===== 🔐 认证中间件 — 以下所有路由都需要认证 =====
+app.use(authGuard);
 // ===== 公开静态资源（不需要认证） =====
 // 前台网站页面 — 公开
 app.use(express.static(__dirname + '/../KOOMZE'));
@@ -290,9 +291,6 @@ app.use(express.static(__dirname + '/../KOOMZE'));
 app.use('/uploads', express.static(__dirname + '/uploads'));
 // 图片文件夹 — 公开
 app.use('/pictures', express.static(__dirname + '/../KOOMZE/Pictures'));
-
-// ===== 🔐 认证中间件 — 以下所有路由都需要认证 =====
-app.use(authGuard);
 
 // ===== 受保护的静态资源和管理页面 =====
 // 管理后台（admin.html 等）— 受 authGuard 保护
