@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>使用协议 | KOOMZE 科曼者</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" href="common.css">
+    <style>
+        /* ========== Terms Page — Layout ========== */
+        .terms-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: calc(40px + var(--topbar-h, 56px)) 28px 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ========== Terms Page — Header ========== */
+        .terms-header {
+            text-align: center;
+            padding: 40px 0 30px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 36px;
+        }
+        .terms-header h1 {
+            font-size: clamp(1.6rem, 2.5vw, 2.2rem);
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 0.8px;
+            margin-bottom: 8px;
+        }
+        .terms-header .terms-subtitle {
+            font-size: 0.88rem;
+            color: var(--text3);
+            font-weight: 400;
+        }
+
+        /* ========== Terms Page — Preamble ========== */
+        .terms-preamble {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 24px 28px;
+            margin-bottom: 32px;
+            color: var(--text2);
+            font-size: 0.92rem;
+            line-height: 1.8;
+        }
+        .terms-preamble strong {
+            color: var(--text);
+        }
+
+        /* ========== Terms Page — Sections ========== */
+        .terms-section {
+            margin-bottom: 32px;
+        }
+        .terms-section h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            letter-spacing: 0.4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .terms-section h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 20px;
+            background: var(--theme);
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .terms-section p {
+            font-size: 0.9rem;
+            color: var(--text2);
+            line-height: 1.9;
+            margin-bottom: 10px;
+            text-align: justify;
+        }
+        .terms-section p strong {
+            color: var(--text);
+        }
+        .terms-section ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 8px 0 14px;
+        }
+        .terms-section ul li {
+            position: relative;
+            padding-left: 20px;
+            font-size: 0.9rem;
+            color: var(--text2);
+            line-height: 1.9;
+            margin-bottom: 4px;
+        }
+        .terms-section ul li::before {
+            content: '—';
+            position: absolute;
+            left: 0;
+            color: var(--theme);
+            font-weight: 600;
+        }
+
+        /* ========== Terms Page — Highlight Box ========== */
+        .terms-highlight {
+            background: var(--card);
+            border-left: 3px solid var(--theme);
+            padding: 16px 22px;
+            margin: 14px 0;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            font-size: 0.9rem;
+            color: var(--text2);
+            line-height: 1.8;
+        }
+
+        /* ========== Terms Page — Entry Animations ========== */
+        .terms-header { animation: fadeInUp 0.5s ease both; }
+        .terms-preamble { animation: fadeInUp 0.5s ease both; animation-delay: 0.08s; }
+        .terms-section { animation: fadeInUp 0.5s ease both; }
+        .terms-section:nth-child(3) { animation-delay: 0.1s; }
+        .terms-section:nth-child(4) { animation-delay: 0.15s; }
+        .terms-section:nth-child(5) { animation-delay: 0.2s; }
+        .terms-section:nth-child(6) { animation-delay: 0.25s; }
+        .terms-section:nth-child(7) { animation-delay: 0.3s; }
+        .terms-section:nth-child(8) { animation-delay: 0.35s; }
+        .terms-section:nth-child(9) { animation-delay: 0.4s; }
+        .terms-section:nth-child(10) { animation-delay: 0.45s; }
+
+        /* ========== Terms Page — Responsive ========== */
+        @media (max-width: 768px) {
+            .terms-container { padding: calc(30px + var(--topbar-h, 48px)) 16px 40px; }
+            .terms-header h1 { font-size: 1.3rem; }
+            .terms-section h2 { font-size: 1rem; }
+            .terms-section p, .terms-section ul li { font-size: 0.84rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ========== Top Bar (scrolled style by default) ========== -->
+<div class="top-bar scrolled" id="topBar">
+    <a href="Main.html" class="logo-link">
+        <img class="logo-img" src="Pictures/components/KOOMZE.png" alt="KOOMZE">
+    </a>
+    <div class="nav-links">
+        <a href="Main.html" class="nav-link"><img class="nav-icon" src="Pictures/components/主页.svg" alt=""><span class="lang-zh">主页</span><span class="lang-tw">首頁</span><span class="lang-en">Home</span></a>
+        <div class="dropdown">
+            <a href="Product.html?category=keyboard" class="dropdown-toggle"><span class="lang-zh">键盘</span><span class="lang-tw">鍵盤</span><span class="lang-en">Keyboards</span></a>
+            <div class="dropdown-menu" data-category="keyboard"></div>
+        </div>
+        <div class="dropdown">
+            <a href="Product.html?category=mouse" class="dropdown-toggle"><span class="lang-zh">鼠标</span><span class="lang-tw">滑鼠</span><span class="lang-en">Mice</span></a>
+            <div class="dropdown-menu" data-category="mouse"></div>
+        </div>
+        <div class="dropdown">
+            <a href="Product.html?category=earphone" class="dropdown-toggle"><span class="lang-zh">耳机</span><span class="lang-tw">耳機</span><span class="lang-en">Headsets</span></a>
+            <div class="dropdown-menu" data-category="earphone"></div>
+        </div>
+        <div class="dropdown">
+            <a href="Product.html?category=speaker" class="dropdown-toggle"><span class="lang-zh">音箱</span><span class="lang-tw">喇叭</span><span class="lang-en">Speakers</span></a>
+            <div class="dropdown-menu" data-category="speaker"></div>
+        </div>
+        <div class="dropdown">
+            <a href="Product.html?category=camera" class="dropdown-toggle"><span class="lang-zh">相机</span><span class="lang-tw">相機</span><span class="lang-en">Camera</span></a>
+            <div class="dropdown-menu" data-category="camera"></div>
+        </div>
+        <a href="Product.html?view=driver" class="nav-link"><img class="nav-icon" src="Pictures/components/驱动.svg" alt=""><span class="lang-zh">驱动支持</span><span class="lang-tw">驅動支援</span><span class="lang-en">Drivers</span></a>
+        <a href="KeyboardTester-main/index.html" class="nav-link"><img class="nav-icon" src="Pictures/components/键盘.svg" alt=""><span class="lang-zh">键盘测试</span><span class="lang-tw">鍵盤測試</span><span class="lang-en">Keyboard Test</span></a>
+    </div>
+    <div class="top-right">
+        <label class="lang-switch" title="切换语言">
+            <img class="lang-icon" src="Pictures/components/多语言.svg" alt="语言">
+            <select class="lang-select" id="langSelect">
+                <option value="zh-CN">简体中文</option>
+                <option value="zh-TW">繁體中文</option>
+                <option value="en">ENGLISH</option>
+            </select>
+        </label>
+    </div>
+</div>
+
+<!-- ========== Terms Content ========== -->
+<div class="terms-container">
+
+    <div class="terms-header">
+        <h1><span class="lang-zh">使用协议</span><span class="lang-tw">使用協議</span><span class="lang-en">Terms of Service</span></h1>
+        <p class="terms-subtitle">
+            <span class="lang-zh">最后更新日期：2026年7月</span>
+            <span class="lang-tw">最後更新日期：2026年7月</span>
+            <span class="lang-en">Last updated: July 2026</span>
+        </p>
+    </div>
+
+    <div class="terms-preamble">
+        <p>
+            <span class="lang-zh">感谢您访问本网站。在使用本网站之前，请您仔细阅读并充分理解本协议的全部内容。您继续浏览或使用本网站，即视为您已阅读、理解并同意接受本协议所有条款的约束。</span>
+            <span class="lang-tw">感謝您訪問本網站。在使用本網站之前，請您仔細閱讀並充分理解本協議的全部內容。您繼續瀏覽或使用本網站，即視為您已閱讀、理解並同意接受本協議所有條款的約束。</span>
+            <span class="lang-en">Thank you for visiting this website. Before using this website, please read and fully understand all terms of this agreement. Your continued browsing or use of this website constitutes your acknowledgment that you have read, understood, and agree to be bound by all terms of this agreement.</span>
+        </p>
+    </div>
+
+    <!-- 一、总则 -->
+    <div class="terms-section">
+        <h2>
+            <span class="lang-zh">一、总则</span>
+            <span class="lang-tw">一、總則</span>
+            <span class="lang-en">I. General Provisions</span>
+        </h2>
+        <p>
+            <span class="lang-zh">1.1 本网站的所有权和运营权归<strong>有限公司</strong>（以下简称"本公司"或"我们"）所有。</span>
+            <span class="lang-tw">1.1 本網站的所有權和運營權歸<strong>有限公司</strong>（以下簡稱"本公司"或"我們"）所有。</span>
+            <span class="lang-en">1.1 The ownership and operation rights of this website belong to <strong>Co., Ltd.</strong> (hereinafter referred to as "the Company" or "we").</span>
+        </p>
+        <p>
+            <span class="lang-zh">1.2 本网站为<strong>企业形象展示/产品信息发布平台</strong>，用户无需注册或登录即可浏览公开内容。用户以任何形式访问或使用本网站，即视为同意本协议的全部条款。</span>
+            <span class="lang-tw">1.2 本網站為<strong>企業形象展示/產品資訊發佈平台</strong>，用戶無需註冊或登入即可瀏覽公開內容。用戶以任何形式訪問或使用本網站，即視為同意本協議的全部條款。</span>
+            <span class="lang-en">1.2 This website is an <strong>enterprise image display/product information release platform</strong>. Users may browse public content without registration or login. Accessing or using this website in any form constitutes agreement to all terms of this agreement.</span>
+        </p>
+        <p>
+            <span class="lang-zh">1.3 本公司有权根据法律法规变化或网站运营需要，随时修改或更新本协议。修改后的协议将在本页面公布，<strong>恕不另行逐一通知用户</strong>。用户应主动关注本页面的变更内容。如用户继续使用本网站，即视为接受修改后的协议。</span>
+            <span class="lang-tw">1.3 本公司有權根據法律法規變化或網站運營需要，隨時修改或更新本協議。修改後的協議將在本頁面公佈，<strong>恕不另行逐一通知用戶</strong>。用戶應主動關注本頁面的變更內容。如用戶繼續使用本網站，即視為接受修改後的協議。</span>
+            <span class="lang-en">1.3 The Company reserves the right to modify or update this agreement at any time based on changes in laws and regulations or website operational needs. The revised agreement will be published on this page <strong>without individual notice to users</strong>. Users should proactively monitor changes to this page. Continued use of this website constitutes acceptance of the revised agreement.</span>
+        </p>
+    </div>
+
+    <!-- 二、服务内容 -->
+    <div class="terms-section">
+        <h2>
+            <span class="lang-zh">二、服务内容</span>
+            <span class="lang-tw">二、服務內容</span>
+            <span class="lang-en">II. Service Content</span>
+        </h2>
+        <p>
+            <span class="lang-zh">2.1 本网站所提供的服务内容包括但不限于：企业信息展示、产品/服务介绍、行业资讯发布、联系方式提供等，具体以网站实际呈现为准。</span>
+            <span class="lang-tw">2.1 本網站所提供的服務內容包括但不限於：企業資訊展示、產品/服務介紹、行業資訊發佈、聯繫方式提供等，具體以網站實際呈現為準。</span>
+            <span class="lang-en">2.1 The services provided by this website include but are not limited to: enterprise information display, product/service introduction, industry news release, contact information provision, etc., subject to the actual presentation of the website.</span>
+        </p>
+        <p>
+            <span class="lang-zh">2.2 本公司保留<strong>随时调整、暂停或终止部分或全部服务</strong>的权利，无需事先通知用户，亦不承担由此产生的任何责任。</span>
+            <span class="lang-tw">2.2 本公司保留<strong>隨時調整、暫停或終止部分或全部服務</strong>的權利，無需事先通知用戶，亦不承擔由此產生的任何責任。</span>
+            <span class="lang-en">2.2 The Company reserves the right to <strong>adjust, suspend, or terminate part or all services at any time</strong> without prior notice to users and shall not bear any liability arising therefrom.</span>
+        </p>
+        <p>
+            <span class="lang-zh">2.3 用户访问本网站所需的设备（如电脑、手机、平板等）及接入互联网所产生的相关费用（如网络费、流量费等），均由用户自行承担。</span>
+            <span class="lang-tw">2.3 用戶訪問本網站所需的設備（如電腦、手機、平板等）及接入互聯網所產生的相關費用（如網絡費、流量費等），均由用戶自行承擔。</span>
+            <span class="lang-en">2.3 The equipment required to access this website (such as computers, mobile phones, tablets, etc.) and related costs incurred from internet access (such as network fees, data charges, etc.) shall be borne by the user.</span>
+        </p>
+    </div>
+
+    <!-- 三、知识产权 -->
+    <div class="terms-section">
+        <h2>
+            <span class="lang-zh">三、知识产权</span>
+            <span class="lang-tw">三、知識產權</span>
+            <span class="lang-en">III. Intellectual Property Rights</span>
+        </h2>
+        <p>
+            <span class="lang-zh">3.1 本网站上的所有内容，包括但不限于<strong>文字、图片、图表、标识、域名、版面设计、色彩搭配、代码、软件</strong>等，其著作权、商标权、专利权及其他知识产权均归本公司或相关内容权利人所有，受《中华人民共和国著作权法》《商标法》及相关国际条约的保护。</span>
+            <span class="lang-tw">3.1 本網站上的所有內容，包括但不限於<strong>文字、圖片、圖表、標識、域名、版面設計、色彩搭配、代碼、軟體</strong>等，其著作權、商標權、專利權及其他知識產權均歸本公司或相關內容權利人所有，受《中華人民共和國著作權法》《商標法》及相關國際條約的保護。</span>
+            <span class="lang-en">3.1 All content on this website, including but not limited to <strong>text, images, graphics, logos, domain names, layout design, color schemes, code, software</strong>, etc., its copyright, trademark rights, patent rights, and other intellectual property rights belong to the Company or relevant content rights holders, protected by applicable copyright laws, trademark laws, and relevant international treaties.</span>
+        </p>
+        <div class="terms-highlight">
+            <p style="margin-bottom:6px;">
+                <span class="lang-zh"><strong>3.2 未经本公司事先书面授权，任何单位或个人不得</strong>对本站内容进行：</span>
+                <span class="lang-tw"><strong>3.2 未經本公司事先書面授權，任何單位或個人不得</strong>對本站內容進行：</span>
+                <span class="lang-en"><strong>3.2 Without prior written authorization from the Company, no entity or individual may</strong> engage in the following with respect to the content of this website:</span>
+            </p>
+            <ul>
+                <li><span class="lang-zh">复制、转载、分发、展示、镜像；</span><span class="lang-tw">複製、轉載、分發、展示、鏡像；</span><span class="lang-en">Copy, reproduce, distribute, display, or mirror;</span></li>
+                <li><span class="lang-zh">修改、改编、翻译、汇编；</span><span class="lang-tw">修改、改編、翻譯、彙編；</span><span class="lang-en">Modify, adapt, translate, or compile;</span></li>
+                <li><span class="lang-zh">反向工程、反编译或试图提取源代码；</span><span class="lang-tw">反向工程、反編譯或試圖提取原始程式碼；</span><span class="lang-en">Reverse engineer, decompile, or attempt to extract source code;</span></li>
+                <li><span class="lang-zh">以任何商业目的使用本站内容。</span><span class="lang-tw">以任何商業目的使用本站內容。</span><span class="lang-en">Use the content of this website for any commercial purpose.</span></li>
+            </ul>
+        </div>
+        <p>
+            <span class="lang-zh">3.3 媒体、网站或个人出于非商业目的转载本站内容时，<strong>必须注明"来源于本站"</strong>，并遵守著作权法及其他相关法律的规定，不得侵犯本公司或他人的合法权益。</span>
+            <span class="lang-tw">3.3 媒體、網站或個人出於非商業目的轉載本站內容時，<strong>必須註明"來源於本站"</strong>，並遵守著作權法及其他相關法律的規定，不得侵犯本公司或他人的合法權益。</span>
+            <span class="lang-en">3.3 When media, websites, or individuals reproduce the content of this website for non-commercial purposes, they <strong>must indicate "Source: This Website"</strong> and comply with the provisions of copyright law and other relevant laws, and shall not infringe upon the legitimate rights and interests of the Company or others.</span>
+        </p>
+        <p>
+            <span class="lang-zh">3.4 违反上述规定的，本公司保留追究侵权者法律责任的权利，包括但不限于要求停止侵害、消除影响、赔礼道歉及赔偿损失等。</span>
+            <span class="lang-tw">3.4 違反上述規定的，本公司保留追究侵權者法律責任的權利，包括但不限於要求停止侵害、消除影響、賠禮道歉及賠償損失等。</span>
+            <span class="lang-en">3.4 For violations of the above provisions, the Company reserves the right to pursue legal liability against infringers, including but not limited to demanding cessation of infringement, elimination of adverse effects, apology, and compensation for damages.</span>
+        </p>
+    </div>
+
+    <!-- 四、使用规则 -->
+    <div class="terms-section">
+        <h2>
+            <span class="lang-zh">四、使用规则</span>
+            <span class="lang-tw">四、使用規則</span>
+            <span class="lang-en">IV. Usage Rules</span>
+        </h2>
+        <p>
+            <span class="lang-zh">您在使用本网站时，应遵守国家法律法规及公序良俗，<strong>不得</strong>实施以下行为：</span>
+            <span class="lang-tw">您在使用本網站時，應遵守國家法律法規及公序良俗，<strong>不得</strong>實施以下行為：</span>
+            <span class="lang-en">When using this website, you shall comply with national laws, regulations, and public order and good customs, and <strong>shall not</strong> engage in the following conduct:</span>
+        </p>
+        <ul>
+            <li>
+                <span class="lang-zh"><strong>4.1</strong> 利用本网站发布、传播、存储任何<strong>违法、违规、虚假、诽谤、淫秽、暴力、恐怖、赌博、教唆犯罪</strong>或其他违背社会公德的信息；</span>
+                <span class="lang-tw"><strong>4.1</strong> 利用本網站發佈、傳播、存儲任何<strong>違法、違規、虛假、誹謗、淫穢、暴力、恐怖、賭博、教唆犯罪</strong>或其他違背社會公德的資訊；</span>
+                <span class="lang-en"><strong>4.1</strong> Use this website to publish, disseminate, or store any <strong>illegal, irregular, false, defamatory, obscene, violent, terrorist, gambling, or crime-inciting</strong> information or other information contrary to social morality;</span>
+            </li>
+            <li>
+                <span class="lang-zh"><strong>4.2</strong> 对本网站进行<strong>网络攻击、侵入、干扰或破坏</strong>，包括但不限于传播病毒、恶意代码、DDoS攻击等；</span>
+                <span class="lang-tw"><strong>4.2</strong> 對本網站進行<strong>網絡攻擊、侵入、干擾或破壞</strong>，包括但不限於傳播病毒、惡意代碼、DDoS攻擊等；</span>
+                <span class="lang-en"><strong>4.2</strong> Conduct <strong>cyber attacks, intrusions, interference, or destruction</strong> against this website, including but not limited to spreading viruses, malicious code, DDoS attacks, etc.;</span>
+            </li>
+            <li>
+                <span class="lang-zh"><strong>4.3 爬取、抓取或批量下载</strong>本站内容，用于商业用途或与其他平台竞争；</span>
+                <span class="lang-tw"><strong>4.3 爬取、抓取或批量下載</strong>本站內容，用於商業用途或與其他平台競爭；</span>
+                <span class="lang-en"><strong>4.3 Crawl, scrape, or batch download</strong> the content of this website for commercial purposes or to compete with other platforms;</span>
+            </li>
+            <li>
+                <span class="lang-zh"><strong>4.4</strong> 以任何方式<strong>冒充本公司或第三方</strong>进行欺诈或误导他人；</span>
+                <span class="lang-tw"><strong>4.4</strong> 以任何方式<strong>冒充本公司或第三方</strong>進行欺詐或誤導他人；</span>
+                <span class="lang-en"><strong>4.4</strong> <strong>Impersonate the Company or a third party</strong> in any way to defraud or mislead others;</span>
+            </li>
+            <li>
+                <span class="lang-zh"><strong>4.5</strong> 其他违反法律法规、政策或损害本公司及第三方合法权益的行为。</span>
+                <span class="lang-tw"><strong>4.5</strong> 其他違反法律法規、政策或損害本公司及第三方合法權益的行為。</span>
+                <span class="lang-en"><strong>4.5</strong> Other conduct that violates laws, regulations, policies, or harms the legitimate rights and interests of the Company and third parties.</span>
+            </li>
+        </ul>
+        <p>
+            <span class="lang-zh">如用户违反上述规定，本公司有权立即采取必要措施（包括但不限于屏蔽IP、限制访问、删除相关数据等），并保留向有关部门举报及追究法律责任的权利。</span>
+            <span class="lang-tw">如用戶違反上述規定，本公司有權立即採取必要措施（包括但不限於封鎖IP、限制訪問、刪除相關數據等），並保留向有關部門舉報及追究法律責任的權利。</span>
+            <span class="lang-en">If a user violates the above provisions, the Company has the right to immediately take necessary measures (including but not limited to blocking IPs, restricting access, deleting relevant data, etc.) and reserves the right to report to relevant authorities and pursue legal liability.</span>
+        </p>
+    </div>
+
+    <!-- 五、隐私保护 -->
+    <div class="terms-section">
+        <h2>
+            <span class="lang-zh">五、隐私保护</span>
+            <span class="lang-tw">五、隱私保護</span>
+            <span class="lang-en">V. Privacy Protection</span>
+        </h2>
+        <p>
+            <span class="lang-zh">5.1 本网站<strong>原则上不收集用户的个人信息</strong>。您无需注册即可浏览公开内容。</span>
+            <span class="lang-tw">5.1 本網站<strong>原則上不收集用戶的個人資訊</strong>。您無需註冊即可瀏覽公開內容。</span>
+            <span class="lang-en">5.1 This website <strong>does not, in principle, collect users' personal information</strong>. You can browse public content without registration.</span>
+        </p>
+        <p>
+            <span class="lang-zh">5.2 在以下情况下，本网站可能会收集有限的非敏感信息：</span>
+            <span class="lang-tw">5.2 在以下情況下，本網站可能會收集有限的非敏感資訊：</span>
+            <span class="lang-en">5.2 Under the following circumstances, this website may collect limited non-sensitive information:</span>
+        </p>
+        <ul>
+            <li>
+                <span class="lang-zh"><strong>服务器日志</strong>：当您访问本网站时，服务器可能会自动记录您的IP地址、访问时间、浏览器类型、操作系统等，仅用于统计分析、安全监控和网站优化，<strong>不会与任何特定自然人身份关联</strong>；</span>
+                <span class="lang-tw"><strong>伺服器日誌</strong>：當您訪問本網站時，伺服器可能會自動記錄您的IP地址、訪問時間、瀏覽器類型、作業系統等，僅用於統計分析、安全監控和網站優化，<strong>不會與任何特定自然人身份關聯</strong>；</span>
+                <span class="lang-en"><strong>Server Logs</strong>: When you visit this website, the server may automatically record your IP address, access time, browser type, operating system, etc., solely for statistical analysis, security monitoring, and website optimization, <strong>and will not be associated with any specific natural person identity</strong>;</span>
+            </li>
+            <li>
+                <span class="lang-zh"><strong>联系表单</strong>：如您通过本站的联系表单主动提交姓名、电话、邮箱等信息，该信息仅用于回复您的咨询，<strong>本公司承诺不会出售、共享或对外公开</strong>，除非得到您的明确同意或法律法规强制要求。</span>
+                <span class="lang-tw"><strong>聯繫表單</strong>：如您通過本站的聯繫表單主動提交姓名、電話、郵箱等資訊，該資訊僅用於回覆您的諮詢，<strong>本公司承諾不會出售、共享或對外公開</strong>，除非得到您的明確同意或法律法規強制要求。</span>
+                <span class="lang-en"><strong>Contact Form</strong>: If you voluntarily submit your name, phone number, email, and other information through the contact form on this website, such information will only be used to respond to your inquiry. <strong>The Company undertakes not to sell, share, or publicly disclose</strong> such information unless with your explicit consent or as required by laws and regulations.</span>
+            </li>
+        </ul>
+        <p>
+            <span class="lang-zh">5.3 本公司会在合理的安全水平内采取技术措施保护您的数据安全，但请您理解，<strong>任何网络传输或存储方式均无法保证100%绝对安全</strong>。</span>
+            <span class="lang-tw">5.3 本公司會在合理的安全水平內採取技術措施保護您的數據安全，但請您理解，<strong>任何網絡傳輸或存儲方式均無法保證100%絕對安全</strong>。</span>
+            <span class="lang-en">5.3 The Company will take technical measures within a reasonable security level to protect your data security, but please understand that <strong>no method of internet transmission or storage can guarantee 100% absolute security</strong>.</span>
+        </p>
+    </div>
+
+    <!-- 六、免责声明 -->
+    <div class="terms-section">
+        <h2>
+            <span class="lang-zh">六、免责声明</span>
+            <span class="lang-tw">六、免責聲明</span>
+            <span class="lang-en">VI. Disclaimer</span>
+        </h2>
+        <p>
+            <span class="lang-zh">6.1 本网站所有内容（包括文字、图片、数据、链接等）均按"<strong>现状</strong>"提供，<strong>不提供任何明示或暗示的担保</strong>。本公司不对网站内容的<strong>准确性、完整性、及时性、可靠性、适用性</strong>作任何保证。</span>
+            <span class="lang-tw">6.1 本網站所有內容（包括文字、圖片、數據、連結等）均按"<strong>現狀</strong>"提供，<strong>不提供任何明示或暗示的擔保</strong>。本公司不對網站內容的<strong>準確性、完整性、及時性、可靠性、適用性</strong>作任何保證。</span>
+            <span class="lang-en">6.1 All content on this website (including text, images, data, links, etc.) is provided on an "<strong>as-is</strong>" basis, <strong>without any express or implied warranty</strong>. The Company makes no guarantee regarding the <strong>accuracy, completeness, timeliness, reliability, or suitability</strong> of the website content.</span>
+        </p>
+        <p>
+            <span class="lang-zh">6.2 本公司<strong>不保证</strong>本网站无任何错误、病毒、攻击或中断，也不保证通过本网站获取的任何信息均安全可靠。用户自行承担使用本网站的风险。</span>
+            <span class="lang-tw">6.2 本公司<strong>不保證</strong>本網站無任何錯誤、病毒、攻擊或中斷，也不保證通過本網站獲取的任何資訊均安全可靠。用戶自行承擔使用本網站的風險。</span>
+            <span class="lang-en">6.2 The Company <strong>does not guarantee</strong> that this website is free of errors, viruses, attacks, or interruptions, nor does it guarantee that any information obtained through this website is safe and reliable. Users assume the risks of using this website at their own discretion.</span>
+        </p>
+        <p>
+            <span class="lang-zh">6.3 本网站可能包含指向第三方网站的外部链接，提供该链接仅为方便用户参考，<strong>不代表本公司认可其内容或对其负责</strong>。用户访问外部链接所产生的一切风险及后果，由用户自行承担。</span>
+            <span class="lang-tw">6.3 本網站可能包含指向第三方網站的外部連結，提供該連結僅為方便用戶參考，<strong>不代表本公司認可其內容或對其負責</strong>。用戶訪問外部連結所產生的一切風險及後果，由用戶自行承擔。</span>
+            <span class="lang-en">6.3 This website may contain external links to third-party websites. Such links are provided solely for user convenience and reference, and <strong>do not represent the Company's endorsement of their content or assumption of responsibility</strong>. All risks and consequences arising from users' access to external links shall be borne by the users themselves.</span>
+        </p>
+        <div class="terms-highlight">
+            <p style="margin-bottom:6px;">
+                <span class="lang-zh"><strong>6.4 在任何情况下，本公司均不对以下损失承担责任</strong>：</span>
+                <span class="lang-tw"><strong>6.4 在任何情況下，本公司均不對以下損失承擔責任</strong>：</span>
+                <span class="lang-en"><strong>6.4 Under no circumstances shall the Company be liable for the following losses</strong>:</span>
+            </p>
+            <ul>
+                <li><span class="lang-zh">因使用或无法使用本网站而产生的直接、间接、偶然、特殊或后果性损失；</span><span class="lang-tw">因使用或無法使用本網站而產生的直接、間接、偶然、特殊或後果性損失；</span><span class="lang-en">Direct, indirect, incidental, special, or consequential losses arising from the use or inability to use this website;</span></li>
+                <li><span class="lang-zh">因第三方行为或不可抗力（包括但不限于自然灾害、战争、罢工、网络故障、政府行为等）导致的服务中断或数据损失。</span><span class="lang-tw">因第三方行為或不可抗力（包括但不限於自然災害、戰爭、罷工、網絡故障、政府行為等）導致的服務中斷或數據損失。</span><span class="lang-en">Service interruptions or data losses caused by third-party conduct or force majeure (including but not limited to natural disasters, war, strikes, network failures, government actions, etc.).</span></li>
+            </ul>
+        </div>
+        <p>
+            <span class="lang-zh">6.5 本网站提供的所有服务（包括但不限于浏览、下载、查询等）<strong>均为免费服务</strong>，如后续推出付费服务，将以单独协议另行约定。对于免费服务，本公司不承担任何赔偿责任，即使本公司已被告知发生此类损害的可能性。</span>
+            <span class="lang-tw">6.5 本網站提供的所有服務（包括但不限於瀏覽、下載、查詢等）<strong>均為免費服務</strong>，如後續推出付費服務，將以單獨協議另行約定。對於免費服務，本公司不承擔任何賠償責任，即使本公司已被告知發生此類損害的可能性。</span>
+            <span class="lang-en">6.5 All services provided by this website (including but not limited to browsing, downloading, inquiries, etc.) <strong>are free services</strong>. If paid services are introduced in the future, they will be separately stipulated in a separate agreement. For free services, the Company assumes no liability for compensation, even if the Company has been advised of the possibility of such damages.</span>
+        </p>
+    </div>
+
+    <!-- 七、法律适用与争议解决 -->
+    <div class="terms-section">
+        <h2>
+            <span class="lang-zh">七、法律适用与争议解决</span>
+            <span class="lang-tw">七、法律適用與爭議解決</span>
+            <span class="lang-en">VII. Governing Law and Dispute Resolution</span>
+        </h2>
+        <p>
+            <span class="lang-zh">7.1 本协议的订立、效力、解释、履行及争议解决，均适用<strong>中华人民共和国法律</strong>（不考虑法律冲突原则）。</span>
+            <span class="lang-tw">7.1 本協議的訂立、效力、解釋、履行及爭議解決，均適用<strong>中華人民共和國法律</strong>（不考慮法律衝突原則）。</span>
+            <span class="lang-en">7.1 The formation, validity, interpretation, performance, and dispute resolution of this agreement shall be governed by the <strong>laws of the People's Republic of China</strong> (without regard to conflict of law principles).</span>
+        </p>
+        <p>
+            <span class="lang-zh">7.2 因本协议或使用本网站所引起的任何争议，双方应首先<strong>友好协商解决</strong>；协商不成的，任何一方均有权向<strong>本公司所在地有管辖权的人民法院</strong>提起诉讼。</span>
+            <span class="lang-tw">7.2 因本協議或使用本網站所引起的任何爭議，雙方應首先<strong>友好協商解決</strong>；協商不成的，任何一方均有權向<strong>本公司所在地有管轄權的人民法院</strong>提起訴訟。</span>
+            <span class="lang-en">7.2 Any dispute arising from this agreement or the use of this website shall first be resolved through <strong>friendly negotiation</strong> between the parties; if negotiation fails, either party may file a lawsuit with the <strong>competent people's court in the location of the Company</strong>.</span>
+        </p>
+    </div>
+
+    <!-- 八、其他 -->
+    <div class="terms-section">
+        <h2>
+            <span class="lang-zh">八、其他</span>
+            <span class="lang-tw">八、其他</span>
+            <span class="lang-en">VIII. Miscellaneous</span>
+        </h2>
+        <p>
+            <span class="lang-zh">8.1 本公司保留<strong>对本协议的最终解释权</strong>。</span>
+            <span class="lang-tw">8.1 本公司保留<strong>對本協議的最終解釋權</strong>。</span>
+            <span class="lang-en">8.1 The Company reserves <strong>the final right of interpretation of this agreement</strong>.</span>
+        </p>
+        <p>
+            <span class="lang-zh">8.2 如本协议中的任何条款被司法机关认定为无效或不可执行，不影响其余条款的有效性和约束力。</span>
+            <span class="lang-tw">8.2 如本協議中的任何條款被司法機關認定為無效或不可執行，不影響其餘條款的有效性和約束力。</span>
+            <span class="lang-en">8.2 If any provision of this agreement is deemed invalid or unenforceable by a judicial authority, the validity and binding force of the remaining provisions shall not be affected.</span>
+        </p>
+        <p>
+            <span class="lang-zh">8.3 本协议以中文版本为准，如有其他语言译本仅供参考，不具备法律效力。</span>
+            <span class="lang-tw">8.3 本協議以中文版本為準，如有其他語言譯本僅供參考，不具備法律效力。</span>
+            <span class="lang-en">8.3 This agreement shall be governed by the Chinese version. Translations into other languages are for reference only and have no legal effect.</span>
+        </p>
+    </div>
+
+</div>
+
+<!-- ========== Footer ========== -->
+<div class="footer">
+    <div id="footerSocial"></div>
+    <div style="margin-top:12px;">
+        <a href="terms.html"><span class="lang-zh">使用协议</span><span class="lang-tw">使用協議</span><span class="lang-en">Usage Agreement</span></a>
+        © 2026 KOOMZE. All rights reserved. 深圳市蒲公英商务科技有限公司
+    </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+    (function() {
+        initCommon();
+
+        // 初始化动态导航下拉菜单
+        initDynamicNav();
+
+        // 初始化底部社交平台
+        initFooterSocial();
+
+        // 顶栏滚动效果（默认已 scrolled，滚动时保持或切换）
+        const topBar = document.getElementById('topBar');
+        if (topBar) {
+            const onScroll = function() {
+                if (window.scrollY <= 10) {
+                    topBar.classList.add('scrolled');
+                } else {
+                    topBar.classList.add('scrolled');
+                }
+            };
+            window.addEventListener('scroll', onScroll, { passive: true });
+            onScroll();
+        }
+    })();
+</script>
+
+</body>
+</html>
