@@ -97,12 +97,12 @@
     .buy-platform:hover { transform:translateY(-4px); }
     .buy-platform.taobao:hover { background:#ff5000; color:#fff; border-color:#ff5000; box-shadow:0 8px 24px rgba(255,80,0,0.35); }
     .buy-platform.jd:hover { background:#e2231a; color:#fff; border-color:#e2231a; box-shadow:0 8px 24px rgba(226,35,26,0.35); }
-    .buy-platform.pdd:hover { background:#e02e24; color:#fff; border-color:#e02e24; box-shadow:0 8px 24px rgba(224,46,36,0.35); }
+    .buy-platform.douyin:hover { background:#fe2c55; color:#fff; border-color:#fe2c55; box-shadow:0 8px 24px rgba(254,44,85,0.35); }
     .buy-platform-icon { width:28px; height:28px; object-fit:contain; display:block; }
     /* hover 时图标反白 */
     .buy-platform.taobao:hover .buy-platform-icon { filter:brightness(0)invert(1); }
     .buy-platform.jd:hover .buy-platform-icon { filter:brightness(0)invert(1); }
-    .buy-platform.pdd:hover .buy-platform-icon { filter:brightness(0)invert(1); }
+    .buy-platform.douyin:hover .buy-platform-icon { filter:brightness(0)invert(1); }
 
     /* ========== Detail Page — Entry Animations ========== */
     .detail-left { animation:fadeInUp 0.5s ease both; animation-delay:0.1s; }
@@ -179,7 +179,7 @@
           <div class="buy-popup">
             <a href="#" class="buy-platform taobao" target="_blank" id="linkTaobao"><img class="buy-platform-icon" src="Pictures/components/淘宝.svg" alt="">淘宝</a>
             <a href="#" class="buy-platform jd" target="_blank" id="linkJd"><img class="buy-platform-icon" src="Pictures/components/京东.svg" alt="">京东</a>
-            <a href="#" class="buy-platform pdd" target="_blank" id="linkPdd"><img class="buy-platform-icon" src="Pictures/components/拼多多.svg" alt="">拼多多</a>
+            <a href="#" class="buy-platform douyin" target="_blank" id="linkDouyin"><img class="buy-platform-icon" src="Pictures/components/抖音.svg" alt="">抖音</a>
           </div>
         </div>
       </div>
@@ -193,19 +193,19 @@
 <script>
   // ========== 兜底数据 ==========
   const PRODUCTS_FALLBACK = [
-    { pid:"H71",  img:"Pictures/白底图/H71键盘.png",      links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"H71键盘",     name_tw:"H71鍵盤",     name_en:"H71" },
-    { pid:"S6",   img:"Pictures/白底图/S6音响.png",       links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"S6 音箱",     name_tw:"S6 音箱",     name_en:"S6 Speaker" },
-    { pid:"S9",   img:"Pictures/白底图/S9音响.png",       links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"S9 音箱",     name_tw:"S9 音箱",     name_en:"S9 Speaker" },
-    { pid:"H75",  img:"Pictures/白底图/H75键盘.png",      links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"H75键盘",     name_tw:"H75鍵盤",     name_en:"H75" },
-    { pid:"H81",  img:"Pictures/白底图/H81键盘.png",      links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"H81键盘",     name_tw:"H81鍵盤",     name_en:"H81" },
-    { pid:"H98",  img:"Pictures/白底图/H98键盘.png",      links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"H98键盘",     name_tw:"H98鍵盤",     name_en:"H98" },
-    { pid:"H102", img:"Pictures/白底图/102键盘.png",      links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"H102键盘",    name_tw:"H102鍵盤",    name_en:"H102" },
-    { pid:"CD",   img:"Pictures/白底图/CD机.png",         links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"科曼者CD机",  name_tw:"科曼者CD機",  name_en:"KOOMZE CD Player" },
-    { pid:"K1",   img:"Pictures/白底图/K1头戴式耳机.png",  links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"K1 耳机",     name_tw:"K1 耳機",     name_en:"K1 Headset" },
-    { pid:"75",   img:"Pictures/白底图/75键盘.png",       links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"75键盘",      name_tw:"75鍵盤",      name_en:"75 Keyboard" },
-    { pid:"K9pAI",img:"Pictures/白底图/K9＋AI款.png",     links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"K9pAI 耳机",  name_tw:"K9pAI 耳機",  name_en:"K9pAI Headset" },
-    { pid:"M7",   img:"Pictures/白底图/M7鼠标.png",       links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"M7 鼠标",     name_tw:"M7 滑鼠",     name_en:"M7 Mouse" },
-    { pid:"C25",  img:"Pictures/白底图/CCD相机.png",      links:{taobao:"#",jd:"#",pdd:"#"}, name_zh:"C25 相机",     name_tw:"C25 相機",     name_en:"C25 Camera" }
+    { pid:"H71",  img:"Pictures/白底图/H71键盘.png",      links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"H71键盘",     name_tw:"H71鍵盤",     name_en:"H71" },
+    { pid:"S6",   img:"Pictures/白底图/S6音响.png",       links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"S6 音箱",     name_tw:"S6 音箱",     name_en:"S6 Speaker" },
+    { pid:"S9",   img:"Pictures/白底图/S9音响.png",       links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"S9 音箱",     name_tw:"S9 音箱",     name_en:"S9 Speaker" },
+    { pid:"H75",  img:"Pictures/白底图/H75键盘.png",      links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"H75键盘",     name_tw:"H75鍵盤",     name_en:"H75" },
+    { pid:"H81",  img:"Pictures/白底图/H81键盘.png",      links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"H81键盘",     name_tw:"H81鍵盤",     name_en:"H81" },
+    { pid:"H98",  img:"Pictures/白底图/H98键盘.png",      links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"H98键盘",     name_tw:"H98鍵盤",     name_en:"H98" },
+    { pid:"H102", img:"Pictures/白底图/102键盘.png",      links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"H102键盘",    name_tw:"H102鍵盤",    name_en:"H102" },
+    { pid:"CD",   img:"Pictures/白底图/CD机.png",         links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"科曼者CD机",  name_tw:"科曼者CD機",  name_en:"KOOMZE CD Player" },
+    { pid:"K1",   img:"Pictures/白底图/K1头戴式耳机.png",  links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"K1 耳机",     name_tw:"K1 耳機",     name_en:"K1 Headset" },
+    { pid:"75",   img:"Pictures/白底图/75键盘.png",       links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"75键盘",      name_tw:"75鍵盤",      name_en:"75 Keyboard" },
+    { pid:"K9pAI",img:"Pictures/白底图/K9＋AI款.png",     links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"K9pAI 耳机",  name_tw:"K9pAI 耳機",  name_en:"K9pAI Headset" },
+    { pid:"M7",   img:"Pictures/白底图/M7鼠标.png",       links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"M7 鼠标",     name_tw:"M7 滑鼠",     name_en:"M7 Mouse" },
+    { pid:"C25",  img:"Pictures/白底图/CCD相机.png",      links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"C25 相机",     name_tw:"C25 相機",     name_en:"C25 Camera" }
   ];
 
   let PRODUCTS = [];
@@ -254,7 +254,7 @@
           links: {
             taobao: item.buyLink1 || '#',
             jd: item.buyLink2 || '#',
-            pdd: item.buyLink3 || '#',
+            douyin: item.buyLink3 || '#',
             link4: item.buyLink4 || '',
             link5: item.buyLink5 || ''
           },
@@ -347,7 +347,7 @@
     const platforms = [
       { id: 'linkTaobao', href: links.taobao, label: '淘宝', icon: '🛍️' },
       { id: 'linkJd',     href: links.jd,     label: '京东', icon: '📦' },
-      { id: 'linkPdd',    href: links.pdd,    label: '拼多多', icon: '💥' }
+      { id: 'linkDouyin', href: links.douyin, label: '抖音', icon: '🎵' }
     ];
     let hasLink = false;
     platforms.forEach(p => {
@@ -376,14 +376,10 @@
 </script>
 
 <div class="footer">
-  <div class="footer-links">
-    <a href="#"><span class="lang-zh">隐私政策</span><span class="lang-tw">隱私政策</span><span class="lang-en">Privacy</span></a>
-    <a href="#"><span class="lang-zh">条款条约</span><span class="lang-tw">條款條約</span><span class="lang-en">Terms</span></a>
-    <a href="#"><span class="lang-zh">意见反馈</span><span class="lang-tw">意見反饋</span><span class="lang-en">Feedback</span></a>
-    <a href="#"><img class="footer-icon" src="Pictures/components/关于我们.svg" alt=""><span class="lang-zh">关于我们</span><span class="lang-tw">關於我們</span><span class="lang-en">About</span></a>
-  </div>
-  <div id="footerSocial"></div>
-  <div style="margin-top:12px;">© 2025 KOOMZE. All rights reserved.</div>
+    <div id="footerSocial"></div>
+    <div style="margin-top:12px;">
+        <a href="terms.html"><span class="lang-zh">使用协议</span><span class="lang-tw">使用協議</span><span class="lang-en">Usage Agreement</span></a>
+        © 2026 KOOMZE. All rights reserved. 深圳市蒲公英商务科技有限公司</div>
 </div>
 
 </body>
