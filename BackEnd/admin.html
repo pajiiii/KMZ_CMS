@@ -157,6 +157,49 @@
         }
         .lookup-count { color: #6a6c7a; font-size: 12px; margin-bottom: 10px; }
 
+        /* ====== 编辑已上传数据 — 搜索/筛选工具栏 ====== */
+        .list-toolbar {
+            display: flex; gap: 10px; align-items: center; margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+        .list-toolbar .list-search {
+            flex: 1; min-width: 200px;
+            padding: 9px 14px; background: #0b0c10;
+            border: 1px solid #2e303a; border-radius: 10px;
+            color: #e8e8f0; font-size: 13px; outline: none;
+            transition: border-color 0.25s;
+        }
+        .list-toolbar .list-search:focus { border-color: #e33f3f; }
+        .list-toolbar .list-search::placeholder { color: #6a6c7a; }
+        .list-toolbar .list-filter {
+            padding: 9px 14px; background: #0b0c10;
+            border: 1px solid #2e303a; border-radius: 10px;
+            color: #e8e8f0; font-size: 13px; cursor: pointer; outline: none;
+            min-width: 130px;
+        }
+        .list-toolbar .list-filter:focus { border-color: #e33f3f; }
+        .list-toolbar .list-result-count { color: #6a6c7a; font-size: 12px; white-space: nowrap; }
+
+        /* 列表项操作按钮区 */
+        .item .item-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+        .edit-item-btn {
+            background: transparent; border: 1px solid #2e303a; border-radius: 6px;
+            color: #a8aab8; cursor: pointer; font-size: 12px; font-weight: 600;
+            padding: 5px 12px; transition: all 0.25s; white-space: nowrap;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .edit-item-btn:hover { background: rgba(227,63,63,0.12); border-color: #e33f3f; color: #e33f3f; }
+
+        /* 模式标识（新建 / 编辑） */
+        .mode-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 14px; border-radius: 20px;
+            font-size: 12px; font-weight: 700;
+            transition: all 0.3s ease;
+        }
+        .mode-badge.create-mode { background: rgba(46,204,113,0.15); color: #2ecc71; border: 1px solid rgba(46,204,113,0.3); }
+        .mode-badge.edit-mode { background: rgba(227,63,63,0.15); color: #e33f3f; border: 1px solid rgba(227,63,63,0.3); }
+
         /* productId 输入自动提示 */
         .pid-suggest {
             position: absolute; background: #1d1e26; border: 1px solid #2e303a;
@@ -295,7 +338,15 @@
 
     <!-- 数据列表 -->
     <div class="list-section">
-        <h3 id="listTitle"><img class="admin-icon" src="../Pictures/admin_components/内容系统.svg" alt=""> 已上传内容</h3>
+        <h3 id="listTitle"><img class="admin-icon" src="../Pictures/admin_components/内容系统.svg" alt=""> 已上传内容 <span class="mode-badge create-mode" id="modeBadge" style="margin-left:10px;vertical-align:middle;">➕ 新建模式</span></h3>
+        <!-- 搜索/筛选工具栏 — 编辑已上传数据入口 -->
+        <div class="list-toolbar" id="listToolbar">
+            <input type="text" class="list-search" id="listSearchInput" placeholder="🔍 搜索已上传记录（按产品ID、名称、型号筛选）...">
+            <select class="list-filter" id="listFilterSelect">
+                <option value="all">全部类型</option>
+            </select>
+            <span class="list-result-count" id="listResultCount"></span>
+        </div>
         <div id="listContainer"><div class="empty">加载中...</div></div>
         <button id="refreshBtn" style="margin-top:12px;padding:8px 16px;background:#2e303a;color:#e8e8f0;border:none;border-radius:8px;cursor:pointer;"><img class="admin-icon" src="../Pictures/admin_components/刷新.svg" alt="" style="filter:brightness(0)invert(1);"> 刷新</button>
     </div>
@@ -473,6 +524,7 @@
 
     let currentType = 'product';
     let editingId = null; // 正在编辑的记录 _id，null 表示新建模式
+    let cachedListData = []; // 缓存当前列表数据，用于搜索/筛选
 
     const tabContainer = document.getElementById('tabContainer');
     const formFields = document.getElementById('formFields');
@@ -490,6 +542,11 @@
     function switchTab(type) {
         currentType = type;
         cancelEdit(); // 切换标签时退出编辑模式
+        // 清空搜索关键词和筛选条件
+        const searchInput = document.getElementById('listSearchInput');
+        const filterSelect = document.getElementById('listFilterSelect');
+        if (searchInput) searchInput.value = '';
+        if (filterSelect) filterSelect.value = 'all';
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.type === type));
         renderForm(type);
         loadList(type);
@@ -857,12 +914,14 @@
         try {
             const res = await authFetch('/api/content/' + type);
             if (!res.ok) throw new Error('加载失败');
-            renderList(await res.json(), type);
+            const data = await res.json();
+            cachedListData = data; // 缓存原始数据
+            filterAndRenderList(); // 应用搜索筛选后渲染
         } catch(err) { listContainer.innerHTML = '<div class="empty">' + err.message + '</div>'; }
     }
 
     function renderList(items, type) {
-        if (!items || items.length === 0) { listContainer.innerHTML = '<div class="empty">暂无数据，上传第一条吧！</div>'; return; }
+        if (!items || items.length === 0) { listContainer.innerHTML = '<div class="empty">暂无数据，上传第一条吧！</div>'; document.getElementById('listResultCount').textContent = ''; return; }
         const config = FIELD_CONFIGS[type];
         let html = '';
         items.forEach(item => {
@@ -896,30 +955,58 @@
                 if (type === 'product-detail' && item.colors && item.colors.length > 0) displayMeta += ' | 🎨 ' + item.colors.length + '种颜色';
                 if (type === 'product-detail' && item.introduction) displayMeta += ' | 📝 已填写介绍';
             }
-            html += '<div class="item" data-id="' + item._id + '"><div class="info"><span class="name">' + escapeHtml(displayName) + '</span><span class="meta">' + displayMeta + '</span></div><button class="del-btn" data-id="' + item._id + '" data-type="' + type + '"><img class="admin-icon-sm" src="../Pictures/admin_components/删除.svg" alt="删除"></button></div>';
+            html += '<div class="item" data-id="' + item._id + '" data-type="' + type + '"><div class="info"><span class="name">' + escapeHtml(displayName) + '</span><span class="meta">' + displayMeta + '</span></div><div class="item-actions"><button class="edit-item-btn" data-id="' + item._id + '" data-type="' + type + '" title="点击编辑此条记录">✏️ 编辑</button><button class="del-btn" data-id="' + item._id + '" data-type="' + type + '" title="删除此条记录"><img class="admin-icon-sm" src="../Pictures/admin_components/删除.svg" alt="删除"></button></div></div>';
         });
         listContainer.innerHTML = html;
+        document.getElementById('listResultCount').textContent = '共 ' + items.length + ' 条记录';
 
-        // 【编辑】点击列表项进入编辑模式
-        document.querySelectorAll('.item').forEach(itemEl => {
-            itemEl.addEventListener('click', async (e) => {
-                // 如果点击的是删除按钮，不触发编辑
-                if (e.target.closest('.del-btn')) return;
-                const id = itemEl.dataset.id;
+        // 【编辑】点击「编辑」按钮进入编辑模式
+        document.querySelectorAll('.edit-item-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation(); // 阻止冒泡到 item
+                const id = btn.dataset.id;
+                const itemType = btn.dataset.type;
                 try {
-                    const res = await authFetch('/api/content/' + type + '/' + id);
+                    const res = await authFetch('/api/content/' + itemType + '/' + id);
                     if (!res.ok) throw new Error('加载失败');
                     const data = await res.json();
                     editingId = data._id;
-                    populateForm(type, data);
+                    populateForm(itemType, data);
                     // 高亮当前编辑项
                     document.querySelectorAll('.item').forEach(el => el.classList.remove('editing'));
-                    itemEl.classList.add('editing');
-                    // 显示编辑指示器
+                    const itemEl = document.querySelector('.item[data-id="' + id + '"]');
+                    if (itemEl) itemEl.classList.add('editing');
+                    // 显示编辑指示器 + 更新模式标识
                     editItemName.textContent = data.name || data.productId || '(未命名)';
                     editIndicator.classList.add('show');
                     submitBtnText.textContent = '更新';
                     cancelEditBtn2.style.display = 'inline-flex';
+                    updateModeBadge('edit');
+                } catch(err) { showMessage('加载数据失败: ' + err.message, 'error'); }
+            });
+        });
+
+        // 点击列表项信息区也可进入编辑（保留便捷操作）
+        document.querySelectorAll('.item .info').forEach(infoEl => {
+            infoEl.style.cursor = 'pointer';
+            infoEl.addEventListener('click', async (e) => {
+                const itemEl = infoEl.closest('.item');
+                if (!itemEl) return;
+                const id = itemEl.dataset.id;
+                const itemType = itemEl.dataset.type;
+                try {
+                    const res = await authFetch('/api/content/' + itemType + '/' + id);
+                    if (!res.ok) throw new Error('加载失败');
+                    const data = await res.json();
+                    editingId = data._id;
+                    populateForm(itemType, data);
+                    document.querySelectorAll('.item').forEach(el => el.classList.remove('editing'));
+                    itemEl.classList.add('editing');
+                    editItemName.textContent = data.name || data.productId || '(未命名)';
+                    editIndicator.classList.add('show');
+                    submitBtnText.textContent = '更新';
+                    cancelEditBtn2.style.display = 'inline-flex';
+                    updateModeBadge('edit');
                 } catch(err) { showMessage('加载数据失败: ' + err.message, 'error'); }
             });
         });
@@ -946,6 +1033,84 @@
                 } catch(err) { showMessage('网络错误', 'error'); }
             });
         });
+    }
+
+    // ========== 搜索/筛选 + 渲染 ==========
+    function filterAndRenderList() {
+        const searchQuery = (document.getElementById('listSearchInput')?.value || '').trim().toLowerCase();
+        const filterType = document.getElementById('listFilterSelect')?.value || 'all';
+
+        let filtered = cachedListData;
+
+        // 按类型筛选（仅当选择了非「全部」时）
+        if (filterType !== 'all') {
+            filtered = filtered.filter(item => {
+                if (currentType === 'driver') return (item.type || '') === filterType;
+                if (currentType === 'product') return (item.category || '') === filterType;
+                if (currentType === 'product-tag') return (item.type || '') === filterType;
+                // 其他类型：尝试用 productId 查产品分类
+                const pid = item.productId || '';
+                const pInfo = productMap[pid];
+                return pInfo && pInfo.category === filterType;
+            });
+        }
+
+        // 按搜索关键词筛选
+        if (searchQuery) {
+            filtered = filtered.filter(item => {
+                let searchText = '';
+                if (currentType === 'product') {
+                    searchText = (item.productId || '') + ' ' + (item.name || '') + ' ' + (item.category || '');
+                } else if (currentType === 'driver') {
+                    searchText = (item.model || '') + ' ' + (item.name || '') + ' ' + (item.type || '') + ' ' + (item.version || '');
+                } else if (currentType === 'social') {
+                    searchText = (item.name || '');
+                } else if (currentType === 'home-mini-carousel') {
+                    const pid = item.productId || '';
+                    searchText = pid + ' ' + (item.name || '') + ' ' + getProductName(pid) + ' ' + (item.description || '');
+                } else {
+                    const pid = item.productId || '';
+                    searchText = pid + ' ' + getProductName(pid) + ' ' + (item.description || '') + ' ' + (item.type || '');
+                }
+                return searchText.toLowerCase().includes(searchQuery);
+            });
+        }
+
+        renderList(filtered, currentType);
+        updateFilterOptions();
+    }
+
+    // 根据当前类型更新筛选下拉框选项
+    function updateFilterOptions() {
+        const select = document.getElementById('listFilterSelect');
+        if (!select) return;
+        const currentVal = select.value;
+        let options = [{ value: 'all', label: '全部类型' }];
+
+        if (currentType === 'driver') {
+            options.push({ value: '键盘', label: '键盘驱动' }, { value: '鼠标', label: '鼠标驱动' }, { value: '耳机', label: '耳机驱动' });
+        } else if (currentType === 'product') {
+            options.push({ value: '键盘', label: '键盘类' }, { value: '鼠标', label: '鼠标类' }, { value: '耳机', label: '耳机类' }, { value: '音箱', label: '音箱类' }, { value: '相机', label: '相机类' });
+        } else if (currentType === 'product-tag') {
+            options.push({ value: '键盘', label: '键盘标签' }, { value: '鼠标', label: '鼠标标签' }, { value: '耳机', label: '耳机标签' }, { value: '音箱', label: '音箱标签' }, { value: '相机', label: '相机标签' });
+        } else {
+            options.push({ value: '键盘', label: '键盘相关' }, { value: '鼠标', label: '鼠标相关' }, { value: '耳机', label: '耳机相关' }, { value: '音箱', label: '音箱相关' }, { value: '相机', label: '相机相关' });
+        }
+
+        select.innerHTML = options.map(o => '<option value="' + o.value + '"' + (o.value === currentVal ? ' selected' : '') + '>' + o.label + '</option>').join('');
+    }
+
+    // 更新模式标识（新建 / 编辑）
+    function updateModeBadge(mode) {
+        const badge = document.getElementById('modeBadge');
+        if (!badge) return;
+        if (mode === 'edit') {
+            badge.textContent = '✏️ 编辑模式';
+            badge.className = 'mode-badge edit-mode';
+        } else {
+            badge.textContent = '➕ 新建模式';
+            badge.className = 'mode-badge create-mode';
+        }
     }
 
     // ========== 填充表单（编辑模式） ==========
@@ -984,6 +1149,7 @@
         editItemName.textContent = '';
         submitBtnText.textContent = '上传';
         cancelEditBtn2.style.display = 'none';
+        updateModeBadge('create');
         document.querySelectorAll('.item').forEach(el => el.classList.remove('editing'));
         document.querySelectorAll('.upload-btn').forEach(btn => {
             btn.classList.remove('done');
@@ -1087,7 +1253,21 @@
     lookupInput.addEventListener('keypress', e => { if (e.key === 'Enter') { const q = lookupInput.value.trim(); q ? searchLookup(q) : refreshLookupTable(); } });
 
     // ========== 启动 ==========
-    async function init() { await loadProductMap(); refreshLookupTable(); switchTab('product'); }
+    async function init() {
+        await loadProductMap();
+        refreshLookupTable();
+        // 绑定搜索/筛选事件
+        const searchInput = document.getElementById('listSearchInput');
+        const filterSelect = document.getElementById('listFilterSelect');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => filterAndRenderList());
+            searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') filterAndRenderList(); });
+        }
+        if (filterSelect) {
+            filterSelect.addEventListener('change', () => filterAndRenderList());
+        }
+        switchTab('product');
+    }
     init();
 </script>
 </body>
