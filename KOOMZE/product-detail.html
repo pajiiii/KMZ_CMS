@@ -121,6 +121,12 @@
 </head>
 <body>
 
+<!-- 页面加载动画 -->
+<div class="page-loader" id="pageLoader">
+  <div class="spinner"></div>
+  <div class="loader-text"><span class="lang-zh">加载中...</span><span class="lang-tw">載入中...</span><span class="lang-en">Loading...</span></div>
+</div>
+
 <div class="top-bar scrolled" id="topBar">
   <a href="Main.html" class="logo-link"><img class="logo-img" src="Pictures/components/KOOMZE.png" alt="KOOMZE"></a>
   <div class="nav-links">
@@ -191,7 +197,7 @@
 
 <script src="common.js"></script>
 <script>
-  // ========== 兜底数据 ==========
+  // ========== 兜底数据（API 不可用时使用） ==========
   const PRODUCTS_FALLBACK = [
     { pid:"H71",  img:"Pictures/白底图/H71键盘.png",      links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"H71键盘",     name_tw:"H71鍵盤",     name_en:"H71" },
     { pid:"S6",   img:"Pictures/白底图/S6音响.png",       links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"S6 音箱",     name_tw:"S6 音箱",     name_en:"S6 Speaker" },
@@ -208,109 +214,77 @@
     { pid:"C25",  img:"Pictures/白底图/CCD相机.png",      links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"C25 相机",     name_tw:"C25 相機",     name_en:"C25 Camera" }
   ];
 
-  let PRODUCTS = [];
   let product = null;
   let productNameMap = {};
-  let currentColorIndex = 0; // 当前选中的颜色索引
+  let currentColorIndex = 0;
   const urlParams = new URLSearchParams(window.location.search);
   const rawId = urlParams.get('id');
-
-  // 获取产品名称映射
-  async function buildProductNameMap() {
-    try {
-      const res = await fetch('/api/content/product');
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.length > 0) {
-          productNameMap = {};
-          data.forEach(p => { productNameMap[p.productId] = p.name; });
-        }
-      }
-    } catch(e) {}
-  }
 
   function resolveName(pid, fallback) {
     return productNameMap[pid] || fallback || pid || '未知产品';
   }
 
-  // 从 API 拉产品详情，失败或无数据返回 null
-  async function fetchDetailFromAPI() {
+  // ⚡ 从 API 拉产品详情 — 按 productId 精确筛选，仅返回一条数据
+  async function fetchDetailFromAPI(pid) {
     try {
-      const res = await fetch('/api/content/product-detail');
+      const res = await fetch('/api/content/product-detail?productId=' + encodeURIComponent(pid));
       if (!res.ok) return null;
       const data = await res.json();
       if (!data || data.length === 0) return null;
-      return data.map(item => {
-        const pid = item.productId || '';
-        const name = resolveName(pid, pid);
-        return {
-          id: pid,
-          pid: pid,
-          img: item.image,
-          // 多颜色支持 — 如果 colors 数组非空，优先使用
-          colors: (item.colors && item.colors.length > 0) ? item.colors : null,
-          // 产品介绍富文本
-          introduction: item.introduction || '',
-          links: {
-            taobao: item.buyLink1 || '#',
-            jd: item.buyLink2 || '#',
-            douyin: item.buyLink3 || '#',
-            link4: item.buyLink4 || '',
-            link5: item.buyLink5 || ''
-          },
-          name_zh: name,
-          name_tw: name,
-          name_en: name
-        };
-      });
-    } catch (e) { console.log('API 不可用，使用本地兜底数据'); return null; }
+      // 取第一条匹配记录
+      const item = data[0];
+      const name = resolveName(item.productId, item.productId);
+      return {
+        id: item.productId, pid: item.productId,
+        img: item.image,
+        colors: (item.colors && item.colors.length > 0) ? item.colors : null,
+        introduction: item.introduction || '',
+        links: {
+          taobao: item.buyLink1 || '#',
+          jd: item.buyLink2 || '#',
+          douyin: item.buyLink3 || '#',
+          link4: item.buyLink4 || '',
+          link5: item.buyLink5 || ''
+        },
+        name_zh: name, name_tw: name, name_en: name
+      };
+    } catch (e) { return null; }
   }
 
   function loadProduct() {
-    product = PRODUCTS.find(p => String(p.id || p.pid) === String(rawId));
     if (!product) { document.querySelector('.container').innerHTML='<p style="text-align:center;padding:60px;">产品不存在</p><a href="Main.html">返回首页</a>'; return false; }
     return true;
   }
 
   function getProductName(p) { return p['name_'+(currentLang==='zh-CN'?'zh':currentLang==='zh-TW'?'tw':'en')]; }
 
-  // 获取当前应显示的主图（根据选中的颜色）
   function getCurrentImage() {
     if (product.colors && product.colors.length > 0 && currentColorIndex < product.colors.length) {
       return product.colors[currentColorIndex].image;
     }
-    return product.img; // 兜底：使用默认主图
+    return product.img;
   }
 
-  // 渲染颜色选择器
   function renderColorSelector() {
     const selectorEl = document.getElementById('colorSelector');
     const labelEl = document.getElementById('colorLabel');
     if (!selectorEl) return;
-
     const colors = product.colors;
     if (!colors || colors.length <= 1) {
-      // 无颜色或仅一个颜色，隐藏选择器
       selectorEl.innerHTML = '';
       labelEl.textContent = '';
       return;
     }
-
     labelEl.textContent = '选择颜色';
-    selectorEl.innerHTML = colors.map((c, i) => {
-      const activeClass = i === currentColorIndex ? ' active' : '';
-      return `<div class="color-dot${activeClass}" data-index="${i}" data-label="${escapeHTML(c.name)}" style="background-image:url('${escapeHTML(c.image)}');" title="${escapeHTML(c.name)}"></div>`;
-    }).join('');
-
-    // 绑定点击事件
+    selectorEl.innerHTML = colors.map((c, i) =>
+      '<div class="color-dot' + (i === currentColorIndex ? ' active' : '') + '" data-index="' + i + '" data-label="' + escapeHTML(c.name) + '" style="background-image:url(\'' + escapeHTML(c.image) + '\');" title="' + escapeHTML(c.name) + '"></div>'
+    ).join('');
     selectorEl.querySelectorAll('.color-dot').forEach(dot => {
       dot.addEventListener('click', function() {
         const idx = parseInt(this.dataset.index);
         if (idx === currentColorIndex) return;
         currentColorIndex = idx;
-        // 更新主图
         document.getElementById('mainImage').src = getCurrentImage();
-        // 更新选中状态
         selectorEl.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
         this.classList.add('active');
       });
@@ -327,27 +301,24 @@
     document.getElementById('mainImage').src = getCurrentImage();
     document.getElementById('mainImage').alt = getProductName(product);
 
-    // 渲染产品介绍
     const introEl = document.getElementById('productIntro');
     const introContentEl = document.getElementById('introContent');
     if (introEl && introContentEl) {
       if (product.introduction && product.introduction.trim()) {
-        introContentEl.innerHTML = product.introduction; // 管理端生成的 HTML，信任来源
+        introContentEl.innerHTML = product.introduction;
         introEl.style.display = 'block';
       } else {
         introEl.style.display = 'none';
       }
     }
 
-    // 渲染颜色选择器
     renderColorSelector();
 
-    // 动态显示购买链接
     const links = product.links || {};
     const platforms = [
-      { id: 'linkTaobao', href: links.taobao, label: '淘宝', icon: '🛍️' },
-      { id: 'linkJd',     href: links.jd,     label: '京东', icon: '📦' },
-      { id: 'linkDouyin', href: links.douyin, label: '抖音', icon: '🎵' }
+      { id: 'linkTaobao', href: links.taobao },
+      { id: 'linkJd',     href: links.jd },
+      { id: 'linkDouyin', href: links.douyin }
     ];
     let hasLink = false;
     platforms.forEach(p => {
@@ -361,17 +332,50 @@
     if (buySection) buySection.style.display = hasLink ? 'inline-block' : 'none';
   }
 
-  async function init() {
-    await buildProductNameMap();
-    const apiData = await fetchDetailFromAPI();
-    PRODUCTS = apiData || PRODUCTS_FALLBACK;
-    if (loadProduct()) {
-      initCommon(function() { updateContent(); });
-      updateContent();
-    }
-    initDynamicNav();
-    initFooterSocial();
+  function hideLoader() {
+    const loader = document.getElementById('pageLoader');
+    if (loader) { loader.classList.add('hidden'); }
   }
+
+  async function init() {
+    if (!rawId) {
+      document.querySelector('.container').innerHTML = '<p style="text-align:center;padding:60px;">缺少产品 ID 参数</p><a href="Product.html">返回产品列表</a>';
+      hideLoader();
+      return;
+    }
+
+    // ⚡ 并行获取：产品列表（用于名称映射+导航）+ 产品详情（按 productId 筛选）
+    const [products, detailData] = await Promise.all([
+      fetchProducts(),
+      fetchDetailFromAPI(rawId)
+    ]);
+
+    // 构建名称映射
+    if (products && products.length > 0) {
+      products.forEach(p => { productNameMap[p.productId] = p.name; });
+    }
+
+    // 确定产品数据
+    if (detailData) {
+      product = detailData;
+    } else {
+      // API 无数据，用兜底数据
+      product = PRODUCTS_FALLBACK.find(p => String(p.pid) === String(rawId)) || null;
+    }
+
+    if (!loadProduct()) { hideLoader(); return; }
+
+    initCommon(function() { updateContent(); });
+    updateContent();
+
+    // ⚡ 传入已获取的产品数据，避免导航重复请求
+    initDynamicNav(products);
+    initFooterSocial();
+
+    // 内容加载完毕，隐藏动画
+    hideLoader();
+  }
+
   init();
 </script>
 

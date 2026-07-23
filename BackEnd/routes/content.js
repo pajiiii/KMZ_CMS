@@ -12,6 +12,38 @@ const Product = require('../models/Product');
 const Driver = require('../models/Driver');
 const SocialPlatform = require('../models/SocialPlatform');
 
+// ===== 内存缓存（5 分钟 TTL，大幅减少数据库重复查询） =====
+const apiCache = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+function getCache(key) {
+  const entry = apiCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > CACHE_TTL_MS) { apiCache.delete(key); return null; }
+  return entry.data;
+}
+function setCache(key, data) {
+  apiCache.set(key, { data, ts: Date.now() });
+}
+// 数据变更时清除对应类型的所有缓存
+function clearCache(type) {
+  const prefix = '/api/content/' + type;
+  let count = 0;
+  for (const key of apiCache.keys()) {
+    if (key.startsWith(prefix)) { apiCache.delete(key); count++; }
+  }
+  if (count > 0) console.log('[Cache] 🧹 清除 ' + type + ' 缓存 ×' + count);
+}
+// 包装：查询 + 缓存
+async function cachedFind(Model, cacheKey, filter = {}, sort = { order: 1, createdAt: -1 }) {
+  const cached = getCache(cacheKey);
+  if (cached !== null) { console.log('[Cache] ⚡ 命中:', cacheKey); return cached; }
+  const data = await Model.find(filter).sort(sort);
+  setCache(cacheKey, data);
+  console.log('[Cache] 💾 写入:', cacheKey, '(' + data.length + ' 条)');
+  return data;
+}
+
 // ---- 图片上传配置 ----
 const uploadDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
@@ -63,7 +95,7 @@ router.post('/upload', (req, res) => {
 // 驱动文件上传配置
 const driverUpload = multer({
   storage,
-  limits: { fileSize: 200 * 1024 * 1024 }, // 200MB
+  limits: { fileSize: 300 * 1024 * 1024 }, // 300MB
   fileFilter: (req, file, cb) => {
     const allowed = /\.(zip|rar|exe|7z|gz|tar|dmg|pkg|msi|pdf)$/i;
     cb(null, allowed.test(path.extname(file.originalname)));
@@ -75,7 +107,7 @@ router.post('/upload-driver', (req, res) => {
   driverUpload.single('file')(req, res, (err) => {
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: '文件不能超过 200MB' });
+        return res.status(400).json({ error: '文件不能超过 300MB' });
       }
       if (err.message) {
         return res.status(400).json({ error: '上传失败: ' + err.message });
@@ -112,10 +144,8 @@ router.get('/products/search', async (req, res) => {
   try {
     let filter = {};
     if (id) {
-      // 精确按 productId 查找
       filter.productId = id;
     } else if (q) {
-      // 模糊搜索：匹配 productId 或 name
       const regex = new RegExp(q, 'i');
       filter = { $or: [{ productId: regex }, { name: regex }] };
     }
@@ -140,7 +170,7 @@ router.get('/:type/:id', async (req, res) => {
   }
 });
 
-// 获取指定类型的数据（支持 ?category= 筛选 product / product-tag）
+// 获取指定类型的数据（支持 ?category= + ?productId= 筛选，带缓存）
 router.get('/:type', async (req, res) => {
   const Model = collections[req.params.type];
   if (!Model) return res.status(400).json({ error: '无效的数据类型' });
@@ -153,13 +183,20 @@ router.get('/:type', async (req, res) => {
       const mapped = catMap[req.query.category] || req.query.category;
 
       if (req.params.type === 'product') {
-        filter.category = mapped;              // Product 模型用 category 字段
+        filter.category = mapped;
       } else if (req.params.type === 'product-tag') {
-        filter.type = mapped;                  // ProductTag 模型用 type 字段
+        filter.type = mapped;
       }
     }
 
-    const data = await Model.find(filter).sort({ order: 1, createdAt: -1 });
+    // 🔥 支持 ?productId=H75 按产品 ID 筛选（用于产品详情页，避免拉取全部数据）
+    if (req.query.productId) {
+      filter.productId = req.query.productId;
+    }
+
+    // 缓存键：类型 + 查询参数
+    const cacheKey = '/api/content/' + req.params.type + '?' + new URLSearchParams(req.query).toString();
+    const data = await cachedFind(Model, cacheKey, filter);
     console.log('[Content] GET /' + req.params.type + ' 返回 ' + data.length + ' 条');
     res.json(data);
   } catch (err) {
@@ -176,11 +213,11 @@ router.post('/:type', async (req, res) => {
     console.log('[Content] POST /' + req.params.type + ' 请求体:', JSON.stringify(req.body).substring(0, 200));
     const newItem = new Model(req.body);
     const saved = await newItem.save();
+    clearCache(req.params.type); // 数据变更，清除缓存
     console.log('[Content] POST /' + req.params.type + ' 保存成功, _id:', saved._id);
     res.status(201).json(saved);
   } catch (err) {
     console.error('[Content] POST /' + req.params.type + ' 保存失败:', err.message);
-    // Mongoose 验证错误时返回更友好的提示
     if (err.name === 'ValidationError') {
       const fields = Object.keys(err.errors).join(', ');
       return res.status(400).json({ error: '字段验证失败: ' + fields + ' — ' + err.message });
@@ -249,6 +286,7 @@ router.delete('/:type/:id', async (req, res) => {
 
     // 删除数据库记录
     await Model.findByIdAndDelete(req.params.id);
+    clearCache(req.params.type); // 数据变更，清除缓存
     res.json({ message: '删除成功', cleanedFiles: uploadPaths.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -261,10 +299,11 @@ router.put('/:type/:id', async (req, res) => {
   if (!Model) return res.status(400).json({ error: '无效的数据类型' });
   try {
     const updated = await Model.findByIdAndUpdate(req.params.id, req.body, {
-      returnDocument: 'after',  // 返回更新后的文档（替代已弃用的 new: true）
-      runValidators: true       // 执行 Mongoose 验证
+      returnDocument: 'after',
+      runValidators: true
     });
     if (!updated) return res.status(404).json({ error: '未找到' });
+    clearCache(req.params.type); // 数据变更，清除缓存
     console.log('[Content] PUT /' + req.params.type + '/' + req.params.id + ' 更新成功');
     res.json(updated);
   } catch (err) {

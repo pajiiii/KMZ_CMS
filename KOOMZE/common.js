@@ -98,19 +98,44 @@ const NAV_FALLBACK = {
     camera:   [{ productId: 'C25', name: 'C25' }]
 };
 
-async function initDynamicNav() {
-    const catMap = { '键盘': 'keyboard', '鼠标': 'mouse', '耳机': 'earphone', '音箱': 'speaker', '相机': 'camera' };
-    const groups = { keyboard: [], mouse: [], earphone: [], speaker: [], camera: [] };
+/**
+ * 获取产品列表（模块级缓存，同一页面多次调用只发一次请求）
+ * @returns {Promise<Array>} 产品数组
+ */
+let _cachedProducts = null;
+async function fetchProducts() {
+    if (_cachedProducts) return _cachedProducts;
     try {
         const res = await fetch('/api/content/product');
         if (res.ok) {
-            const products = await res.json();
-            products.forEach(p => {
-                const key = catMap[p.category] || null;
-                if (key && groups[key]) groups[key].push({ productId: p.productId, name: p.name });
-            });
+            _cachedProducts = await res.json();
+            return _cachedProducts;
         }
     } catch(e) {}
+    _cachedProducts = [];
+    return _cachedProducts;
+}
+
+/**
+ * 初始化导航下拉菜单（填充产品列表）
+ * @param {Array|null} products 可选的预获取产品数据，传入则跳过内部 fetch
+ */
+async function initDynamicNav(products) {
+    const catMap = { '键盘': 'keyboard', '鼠标': 'mouse', '耳机': 'earphone', '音箱': 'speaker', '相机': 'camera' };
+    const groups = { keyboard: [], mouse: [], earphone: [], speaker: [], camera: [] };
+
+    // 优先使用传入的数据，其次使用缓存，最后才自己请求
+    let data = products;
+    if (!data || data.length === 0) {
+        data = await fetchProducts();
+    }
+
+    if (data && data.length > 0) {
+        data.forEach(p => {
+            const key = catMap[p.category] || null;
+            if (key && groups[key]) groups[key].push({ productId: p.productId, name: p.name });
+        });
+    }
 
     Object.keys(groups).forEach(cat => {
         const menu = document.querySelector('.dropdown-menu[data-category="' + cat + '"]');

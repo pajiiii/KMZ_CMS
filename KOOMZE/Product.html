@@ -108,6 +108,12 @@
 </head>
 <body>
 
+<!-- 页面加载动画 -->
+<div class="page-loader" id="pageLoader">
+  <div class="spinner"></div>
+  <div class="loader-text"><span class="lang-zh">加载中...</span><span class="lang-tw">載入中...</span><span class="lang-en">Loading...</span></div>
+</div>
+
 <div class="top-bar scrolled" id="topBar">
   <a href="Main.html" class="logo-link"><img class="logo-img" src="Pictures/components/KOOMZE.png" alt="KOOMZE"></a>
   <div class="nav-links">
@@ -174,19 +180,14 @@
 <script src="common.js"></script>
 <script>
   let PRODUCTS = [];
+  let DRIVERS = [];
   let productNameMap = {}; // productId → name
 
-  async function buildProductNameMap() {
-    try {
-      const res = await fetch('/api/content/product');
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.length > 0) {
-          productNameMap = {};
-          data.forEach(p => { productNameMap[p.productId] = p.name; });
-        }
-      }
-    } catch(e) {}
+  function buildProductNameMap(products) {
+    if (products && products.length > 0) {
+      productNameMap = {};
+      products.forEach(p => { productNameMap[p.productId] = p.name; });
+    }
   }
 
   function resolveProductName(item, fallbackKey) {
@@ -195,9 +196,8 @@
     return item[fallbackKey] || pid || '未命名';
   }
 
-  // 从 API 拉产品列表，可选按分类筛选；所有数据统一从数据库获取
+  // 从 API 拉产品标签列表，可选按分类筛选
   async function initProducts(category) {
-    await buildProductNameMap();
     try {
       const apiUrl = category
         ? '/api/content/product-tag?category=' + encodeURIComponent(category)
@@ -206,23 +206,19 @@
       if (!res.ok) { PRODUCTS = []; return; }
       const data = await res.json();
       if (!data || data.length === 0) { PRODUCTS = []; return; }
-      // 映射 API 数据 → 统一格式，名称通过 productId 查找
+      const catMap = { '键盘':'keyboard','鼠标':'mouse','耳机':'earphone','音箱':'speaker','相机':'camera' };
       PRODUCTS = data.map(item => {
         const pid = item.productId || '';
         const name = productNameMap[pid] || pid;
         const cat = item.type || '';
-        const catMap = { '键盘':'keyboard','鼠标':'mouse','耳机':'earphone','音箱':'speaker','相机':'camera' };
         return {
-          id: pid,
-          pid: pid,
+          id: pid, pid: pid,
           cat: catMap[cat] || cat || '',
           img: item.image,
-          name_zh: name,
-          name_tw: name,
-          name_en: name
+          name_zh: name, name_tw: name, name_en: name
         };
       });
-    } catch (e) { console.log('API 不可用，请检查网络连接'); PRODUCTS = []; }
+    } catch (e) { PRODUCTS = []; }
   }
 
   async function loadDrivers() {
@@ -244,7 +240,9 @@
     } catch(e) {}
     DRIVERS = [];
   }
+
   let currentView = 'product', currentCategory = 'all', searchKeyword = '';
+
   function getProductName(p) {
     const pid = p.pid || p.productId || '';
     if (productNameMap[pid]) return productNameMap[pid];
@@ -252,27 +250,30 @@
   }
   function getDriverName(d) { return d.name || ''; }
   function getDriverDesc(d) { return d.description || ''; }
+
   function renderProducts() {
     const container = document.getElementById('productList');
     let filtered = PRODUCTS.filter(p => {
-       if (currentCategory !== 'all' && p.cat !== currentCategory) {
-            return false;
-        }
+      if (currentCategory !== 'all' && p.cat !== currentCategory) return false;
       if (searchKeyword && !getProductName(p).toLowerCase().includes(searchKeyword.toLowerCase())) return false;
       return true;
     });
-    if (!filtered.length) { container.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text2);">✨ <span class="lang-zh">没有找到相关产品</span><span class="lang-tw">沒有找到相關產品</span><span class="lang-en">No products found</span></div>`; return; }
+    if (!filtered.length) {
+      container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text2);">✨ <span class="lang-zh">没有找到相关产品</span><span class="lang-tw">沒有找到相關產品</span><span class="lang-en">No products found</span></div>';
+      return;
+    }
     container.innerHTML = filtered.map(p => {
       const pid = p.pid || p.id || '';
-      return `<div class="product" data-product-id="${pid}"><img src="${p.img}" alt="${getProductName(p)}" onerror="this.src='https://placehold.co/400x240?text=KOOMZE'"><div class="name">${getProductName(p)}</div></div>`;
+      return '<div class="product" data-product-id="' + pid + '"><img src="' + p.img + '" alt="' + getProductName(p) + '" onerror="this.src=\'https://placehold.co/400x240?text=KOOMZE\'"><div class="name">' + getProductName(p) + '</div></div>';
     }).join('');
-    document.querySelectorAll('.product').forEach(el => el.addEventListener('click', () => { window.location.href = 'product-detail.html?id=' + encodeURIComponent(el.dataset.productId); }));
+    document.querySelectorAll('.product').forEach(el => el.addEventListener('click', () => {
+      window.location.href = 'product-detail.html?id=' + encodeURIComponent(el.dataset.productId);
+    }));
   }
+
   function renderDrivers() {
     const container = document.getElementById('driverContainer');
     if (!container) return;
-
-    // 按种类分组，固定显示顺序：键盘 → 鼠标 → 耳机
     const typeOrder = ['键盘', '鼠标', '耳机'];
     const typeLabels = {
       '键盘': { zh: '<img src="Pictures/components/键盘.svg" alt="" style="width:24px;height:24px;vertical-align:middle;margin-right:6px;">键盘驱动', tw: '<img src="Pictures/components/键盘.svg" alt="" style="width:24px;height:24px;vertical-align:middle;margin-right:6px;">鍵盤驅動', en: '<img src="Pictures/components/键盘.svg" alt="" style="width:24px;height:24px;vertical-align:middle;margin-right:6px;">Keyboard Drivers' },
@@ -283,13 +284,11 @@
     typeOrder.forEach(t => { groups[t] = []; });
     DRIVERS.forEach(d => {
       const t = d.type || '键盘';
-      if (groups[t]) groups[t].push(d);
-      else groups[t] = [d];
+      if (groups[t]) groups[t].push(d); else groups[t] = [d];
     });
 
     const dlIcon = '<img class="nav-icon" src="Pictures/components/下载.svg" alt="">';
     const webIcon = '<img class="nav-icon" src="Pictures/components/查看.svg" alt="">';
-
     const langKey = currentLang === 'zh-TW' ? 'tw' : (currentLang === 'en' ? 'en' : 'zh');
 
     let html = '';
@@ -297,64 +296,52 @@
       const items = groups[type] || [];
       if (items.length === 0) return;
       const label = (typeLabels[type] && typeLabels[type][langKey]) || type;
-      html += '<div class="driver-section">';
-      html += '<div class="driver-section-title">' + label + '</div>';
-      html += '<div class="driver-grid">';
+      html += '<div class="driver-section"><div class="driver-section-title">' + label + '</div><div class="driver-grid">';
       items.forEach(d => {
-        const model = d.model || '';
-        const name = getDriverName(d);
-        const version = d.version || '';
-        const desc = getDriverDesc(d);
-        const webLink = d.webDriverLink || '';
-        const fileLink = d.file || d.link || '';
+        const model = d.model || '', name = getDriverName(d), version = d.version || '', desc = getDriverDesc(d);
+        const webLink = d.webDriverLink || '', fileLink = d.file || d.link || '';
         const modelHTML = model ? '<div class="driver-model">' + model + '</div>' : '';
         const versionRow = version ? '<div class="meta-row"><span class="meta-label">版本：</span><span class="meta-value">' + version + '</span></div>' : '';
         const descRow = desc ? '<div class="meta-row"><span class="meta-label">说明：</span><span class="meta-value">' + desc + '</span></div>' : '';
-        html += '<div class="driver">'
-          + modelHTML
-          + '<div class="driver-name">' + name + '</div>'
-          + '<div class="driver-meta">' + descRow + versionRow + '</div>'
-          + '<div class="driver-actions">'
-          + '<a href="' + fileLink + '" class="dl-btn" download>' + dlIcon + ' <span class="lang-zh">立即下载</span><span class="lang-tw">立即下載</span><span class="lang-en">Download</span></a>'
-          + (webLink ? '<a href="' + webLink + '" class="dl-btn web-btn" target="_blank" rel="noopener">' + webIcon + ' <span class="lang-zh">网页版驱动</span><span class="lang-tw">網頁版驅動</span><span class="lang-en">Web Driver</span></a>' : '')
-          + '</div></div>';
+        html += '<div class="driver">' + modelHTML + '<div class="driver-name">' + name + '</div><div class="driver-meta">' + descRow + versionRow + '</div><div class="driver-actions"><a href="' + fileLink + '" class="dl-btn" download>' + dlIcon + ' <span class="lang-zh">立即下载</span><span class="lang-tw">立即下載</span><span class="lang-en">Download</span></a>' + (webLink ? '<a href="' + webLink + '" class="dl-btn web-btn" target="_blank" rel="noopener">' + webIcon + ' <span class="lang-zh">网页版驱动</span><span class="lang-tw">網頁版驅動</span><span class="lang-en">Web Driver</span></a>' : '') + '</div></div>';
       });
       html += '</div></div>';
     });
-
     if (!html) {
       html = '<div class="driver-empty"><span class="lang-zh">📦 还未上传驱动文件</span><span class="lang-tw">📦 還未上傳驅動文件</span><span class="lang-en">📦 No driver files uploaded yet</span></div>';
     }
     container.innerHTML = html;
   }
-  // 分类元数据（UI 配置，非产品数据）
+
   const CATEGORY_META = [
-    { key:"all",       name_zh:"所有",      name_tw:"所有",      name_en:"All" },
-    { key:"keyboard",  name_zh:"键盘",      name_tw:"鍵盤",      name_en:"Keyboard" },
-    { key:"mouse",     name_zh:"鼠标",      name_tw:"滑鼠",      name_en:"Mouse" },
-    { key:"earphone",  name_zh:"耳机",      name_tw:"耳機",      name_en:"Earphone" },
-    { key:"speaker",   name_zh:"音箱/CD机", name_tw:"喇叭",      name_en:"Speaker/CD" },
-    { key:"camera",    name_zh:"相机",      name_tw:"相機",      name_en:"Camera" }
+    { key:"all", name_zh:"所有", name_tw:"所有", name_en:"All" },
+    { key:"keyboard", name_zh:"键盘", name_tw:"鍵盤", name_en:"Keyboard" },
+    { key:"mouse", name_zh:"鼠标", name_tw:"滑鼠", name_en:"Mouse" },
+    { key:"earphone", name_zh:"耳机", name_tw:"耳機", name_en:"Earphone" },
+    { key:"speaker", name_zh:"音箱/CD机", name_tw:"喇叭", name_en:"Speaker/CD" },
+    { key:"camera", name_zh:"相机", name_tw:"相機", name_en:"Camera" }
   ];
 
   function setupCategories() {
     const catsContainer = document.getElementById('catsContainer');
-    catsContainer.innerHTML = CATEGORY_META.map(cat => `<div class="cat ${currentCategory===cat.key?'active':''}" data-cat="${cat.key}"><span class="lang-zh">${cat.name_zh}</span><span class="lang-tw">${cat.name_tw}</span><span class="lang-en">${cat.name_en}</span></div>`).join('');
+    catsContainer.innerHTML = CATEGORY_META.map(cat =>
+      '<div class="cat ' + (currentCategory===cat.key?'active':'') + '" data-cat="' + cat.key + '"><span class="lang-zh">' + cat.name_zh + '</span><span class="lang-tw">' + cat.name_tw + '</span><span class="lang-en">' + cat.name_en + '</span></div>'
+    ).join('');
     document.querySelectorAll('.cat').forEach(el => el.addEventListener('click', async () => {
-      document.querySelectorAll('.cat').forEach(c => c.classList.remove('active')); el.classList.add('active');
+      document.querySelectorAll('.cat').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
       currentCategory = el.dataset.cat;
-      // 同步更新浏览器 URL（不刷新页面），方便分享链接
       const url = new URL(window.location);
       if (currentCategory === 'all') { url.searchParams.delete('category'); }
       else { url.searchParams.set('category', currentCategory); }
       window.history.replaceState({}, '', url);
       if (currentView === 'product') {
-        // 🔥 统一从数据库获取对应分类数据，不再使用本地硬编码
         await initProducts(currentCategory !== 'all' ? currentCategory : null);
         renderProducts();
       }
     }));
   }
+
   function setView(view) {
     currentView = view;
     document.getElementById('productPage').style.display = view === 'product' ? 'block' : 'none';
@@ -363,6 +350,7 @@
     if (view === 'product') { if(driverNav) driverNav.classList.remove('active'); renderProducts(); }
     else { if(driverNav) driverNav.classList.add('active'); renderDrivers(); }
   }
+
   async function refreshUI() {
     await initProducts(currentCategory !== 'all' ? currentCategory : null);
     document.getElementById('searchInput').style.display = currentLang==='zh-CN'?'block':'none';
@@ -370,26 +358,37 @@
     document.getElementById('searchInputEn').style.display = currentLang==='en'?'block':'none';
     if (currentView === 'product') { renderProducts(); setupCategories(); } else renderDrivers();
   }
+
+  function hideLoader() {
+    const loader = document.getElementById('pageLoader');
+    if (loader) { loader.classList.add('hidden'); }
+  }
+
   window.addEventListener('DOMContentLoaded', async () => {
-    initCommon(function() { refreshUI(); });
-
     const params = new URLSearchParams(window.location.search);
-
-    // ---------- 读取 URL 参数：view（产品/驱动视图） ----------
     const viewParam = params.get('view');
-
-    // ---------- 读取 URL 参数：category（分类筛选，如 ?category=keyboard） ----------
     const catParam = params.get('category');
     if (catParam) { currentCategory = catParam; }
 
-    // 🔥 初始化数据时传入筛选分类，让后端 API 直接返回过滤后的数据
-    await initProducts(currentCategory !== 'all' ? currentCategory : null);
-    await loadDrivers();
+    // ⚡ 只请求一次产品列表，复用于名称映射和导航下拉
+    const products = await fetchProducts();
+    buildProductNameMap(products);
 
+    // ⚡ 并行加载：产品标签 + 驱动 + 社交信息（产品数据已获取，无需再等）
+    await Promise.all([
+      initProducts(currentCategory !== 'all' ? currentCategory : null),
+      loadDrivers()
+    ]);
+
+    initCommon(function() { refreshUI(); });
     setView(viewParam === 'driver' ? 'driver' : 'product');
     setupCategories();
-    initDynamicNav();
+
+    // ⚡ 传入已获取的产品数据，避免 initDynamicNav 重复请求
+    initDynamicNav(products);
     initFooterSocial();
+
+    // 绑定搜索事件
     document.getElementById('searchBtn').addEventListener('click', () => {
       let input = document.getElementById(currentLang==='zh-CN'?'searchInput':currentLang==='zh-TW'?'searchInputTw':'searchInputEn');
       searchKeyword = input ? input.value.trim() : '';
@@ -402,6 +401,9 @@
         el.addEventListener('keypress', e => { if(e.key==='Enter'){ searchKeyword = e.target.value.trim(); if(currentView==='product') renderProducts(); } });
       }
     });
+
+    // 🔥 内容加载完毕，隐藏加载动画
+    hideLoader();
   });
 </script>
 </body>

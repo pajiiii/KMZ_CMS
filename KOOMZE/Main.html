@@ -377,9 +377,8 @@
     }
 
     // 构建 productId → 产品名称 映射表
-    async function buildProductNameMap() {
-        const products = await fetchFromAPI('/api/content/product');
-        if (products) {
+    function buildProductNameMap(products) {
+        if (products && products.length > 0) {
             productNameMap = {};
             products.forEach(p => { productNameMap[p.productId] = p.name; });
         }
@@ -393,17 +392,18 @@
 
     // 初始化所有数据
     async function initData() {
-        const [carouselData, featuresData] = await Promise.all([
+        // ⚡ 并行获取：轮播 + 标签 + 产品列表
+        const [carouselData, featuresData, products] = await Promise.all([
             fetchFromAPI('/api/content/home-carousel'),
-            fetchFromAPI('/api/content/home-tag')
+            fetchFromAPI('/api/content/home-tag'),
+            fetchProducts()  // 复用 common.js 的缓存 fetch
         ]);
-        await buildProductNameMap();
+        buildProductNameMap(products);
 
-        // 轮播数据：API 数据 → 统一格式，名称通过 productId 查找
+        // 轮播数据
         if (carouselData) {
             CAROUSEL_ITEMS = carouselData.map(item => ({
-                id: item._id,
-                pid: item.productId,
+                id: item._id, pid: item.productId,
                 img: item.image,
                 title: resolveName(item, ''),
                 description: item.description || '',
@@ -421,8 +421,7 @@
         // 产品卡片数据
         if (featuresData) {
             renderFeatureCards(featuresData.map(item => ({
-                pid: item.productId,
-                img: item.image,
+                pid: item.productId, img: item.image,
                 title: resolveName(item, ''),
                 description: item.description || ''
             })));
@@ -432,6 +431,8 @@
                 title: item.title, description: item.description || ''
             })));
         }
+
+        return products; // 返回给调用方，传给 initDynamicNav
     }
 
     // 渲染产品卡片区域（feature grid）
@@ -803,14 +804,15 @@
     }
 
     async function refreshUI() {
-        await initData();  // 先从 API 拉数据
+        const products = await initData();  // 拉数据 + 返回产品列表
         renderCarousel();
         initCarouselIndicators();
         initCarouselTransitionReset();
         initCarouselResize();
         updateCarouselState(0);
         startCarouselAutoScroll();
-        await initMiniCarousel(); // 【修复】await 确保小轮播初始化完成再继续
+        await initMiniCarousel();
+        return products; // 传给 initDynamicNav
     }
 
     function initScrollEffect() {
@@ -820,11 +822,12 @@
         handler();
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-        // initCommon 回调仅在切换语言时触发；首次渲染需直接调用 refreshUI()
-        initCommon(function() { refreshUI(); });
-        refreshUI();
-        initDynamicNav();
+    window.addEventListener('DOMContentLoaded', async () => {
+        // initCommon 回调仅在切换语言时触发
+        initCommon(function() { refreshUI().then(p => initDynamicNav(p)); });
+        const products = await refreshUI();
+        // ⚡ 传入已获取的产品数据，避免导航重复请求
+        initDynamicNav(products);
         initFooterSocial();
         initScrollEffect();
 
