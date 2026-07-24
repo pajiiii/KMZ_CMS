@@ -249,7 +249,7 @@
             max-width: 80%;
             max-height: 50%;
             object-fit: contain;
-            animation: loaderFadeIn 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation: loaderFadeIn 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
         @keyframes loaderFadeIn {
             0%   { opacity: 0; transform: scale(0.92); }
@@ -831,7 +831,7 @@
         /* Page loader — fade in image → hold → fade out */
         const loader = document.getElementById('pageLoader');
         if (loader) {
-            const HOLD_DURATION = 2500;   /* image visible for 2.5s before fading */
+            const HOLD_DURATION = 100; 
             let loaderHidden = false;
             function hideLoader() {
                 if (loaderHidden) return;
