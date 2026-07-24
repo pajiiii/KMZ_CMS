@@ -206,7 +206,7 @@
       if (!res.ok) { PRODUCTS = []; return; }
       const data = await res.json();
       if (!data || data.length === 0) { PRODUCTS = []; return; }
-      const catMap = { '键盘':'keyboard','鼠标':'mouse','耳机':'earphone','音箱':'speaker','相机':'camera' };
+      const catMap = { '键盘':'keyboard','鼠标':'mouse','耳机':'earphone','音箱':'speaker','相机':'camera','其他配件':'accessory' };
       PRODUCTS = data.map(item => {
         const pid = item.productId || '';
         const name = productNameMap[pid] || pid;
@@ -319,7 +319,8 @@
     { key:"mouse", name_zh:"鼠标", name_tw:"滑鼠", name_en:"Mouse" },
     { key:"earphone", name_zh:"耳机", name_tw:"耳機", name_en:"Earphone" },
     { key:"speaker", name_zh:"音箱/CD机", name_tw:"喇叭", name_en:"Speaker/CD" },
-    { key:"camera", name_zh:"相机", name_tw:"相機", name_en:"Camera" }
+    { key:"camera", name_zh:"相机", name_tw:"相機", name_en:"Camera" },
+    { key:"accessory", name_zh:"其他配件", name_tw:"其他配件", name_en:"Accessory" }
   ];
 
   function setupCategories() {

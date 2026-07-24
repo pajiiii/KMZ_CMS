@@ -179,7 +179,7 @@ router.get('/:type', async (req, res) => {
 
     // 🔥 支持 ?category=keyboard 按分类筛选
     if (req.query.category) {
-      const catMap = { 'keyboard': '键盘', 'mouse': '鼠标', 'earphone': '耳机', 'speaker': '音箱', 'camera': '相机' };
+      const catMap = { 'keyboard': '键盘', 'mouse': '鼠标', 'earphone': '耳机', 'speaker': '音箱', 'camera': '相机', 'accessory': '其他配件' };
       const mapped = catMap[req.query.category] || req.query.category;
 
       if (req.params.type === 'product') {

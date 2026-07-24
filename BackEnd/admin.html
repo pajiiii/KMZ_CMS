@@ -445,7 +445,7 @@
             fields: [
                 { key: 'productId', label: '产品 ID', type: 'text', required: true, placeholder: '如 H75、M7、K1（唯一标识）' },
                 { key: 'name', label: '产品名称', type: 'text', required: true, placeholder: '如 H75 三模机械键盘' },
-                { key: 'category', label: '产品分类', type: 'select', required: true, options: ['键盘','鼠标','耳机','音箱','相机'] }
+                { key: 'category', label: '产品分类', type: 'select', required: true, options: ['键盘','鼠标','耳机','音箱','相机','其他配件'] }
             ],
             label: '产品基础信息'
         },
@@ -482,7 +482,7 @@
             fields: [
                 { key: 'productId', label: '关联产品 ID', type: 'pid', required: true, placeholder: '输入产品 ID（如 H75）' },
                 { key: 'image', label: '产品图片', type: 'image', required: true, placeholder: 'https://...' },
-                { key: 'type', label: '产品类型（用于分类筛选）', type: 'select', required: false, options: ['键盘','鼠标','耳机','音箱','相机'] }
+                { key: 'type', label: '产品类型（用于分类筛选）', type: 'select', required: false, options: ['键盘','鼠标','耳机','音箱','相机','其他配件'] }
             ],
             label: '产品页标签图'
         },
@@ -1090,11 +1090,11 @@
         if (currentType === 'driver') {
             options.push({ value: '键盘', label: '键盘驱动' }, { value: '鼠标', label: '鼠标驱动' }, { value: '耳机', label: '耳机驱动' });
         } else if (currentType === 'product') {
-            options.push({ value: '键盘', label: '键盘类' }, { value: '鼠标', label: '鼠标类' }, { value: '耳机', label: '耳机类' }, { value: '音箱', label: '音箱类' }, { value: '相机', label: '相机类' });
+            options.push({ value: '键盘', label: '键盘类' }, { value: '鼠标', label: '鼠标类' }, { value: '耳机', label: '耳机类' }, { value: '音箱', label: '音箱类' }, { value: '相机', label: '相机类' }, { value: '其他配件', label: '其他配件类' });
         } else if (currentType === 'product-tag') {
-            options.push({ value: '键盘', label: '键盘标签' }, { value: '鼠标', label: '鼠标标签' }, { value: '耳机', label: '耳机标签' }, { value: '音箱', label: '音箱标签' }, { value: '相机', label: '相机标签' });
+            options.push({ value: '键盘', label: '键盘标签' }, { value: '鼠标', label: '鼠标标签' }, { value: '耳机', label: '耳机标签' }, { value: '音箱', label: '音箱标签' }, { value: '相机', label: '相机标签' }, { value: '其他配件', label: '其他配件标签' });
         } else {
-            options.push({ value: '键盘', label: '键盘相关' }, { value: '鼠标', label: '鼠标相关' }, { value: '耳机', label: '耳机相关' }, { value: '音箱', label: '音箱相关' }, { value: '相机', label: '相机相关' });
+            options.push({ value: '键盘', label: '键盘相关' }, { value: '鼠标', label: '鼠标相关' }, { value: '耳机', label: '耳机相关' }, { value: '音箱', label: '音箱相关' }, { value: '相机', label: '相机相关' }, { value: '其他配件', label: '其他配件相关' });
         }
 
         select.innerHTML = options.map(o => '<option value="' + o.value + '"' + (o.value === currentVal ? ' selected' : '') + '>' + o.label + '</option>').join('');
