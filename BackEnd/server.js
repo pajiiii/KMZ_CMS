@@ -298,7 +298,7 @@ app.use(express.static(__dirname));
 
 // 访问根路径 → 跳转管理页（受 authGuard 保护）
 app.get('/', (req, res) => {
-  res.redirect('/admin.html');
+  res.redirect('/Main.html');
 });
 
 // ===== 受保护的 API 路由 =====
