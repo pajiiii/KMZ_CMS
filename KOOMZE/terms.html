@@ -476,20 +476,6 @@
 
         // 初始化底部社交平台
         initFooterSocial();
-
-        // 顶栏滚动效果（默认已 scrolled，滚动时保持或切换）
-        const topBar = document.getElementById('topBar');
-        if (topBar) {
-            const onScroll = function() {
-                if (window.scrollY <= 10) {
-                    topBar.classList.add('scrolled');
-                } else {
-                    topBar.classList.add('scrolled');
-                }
-            };
-            window.addEventListener('scroll', onScroll, { passive: true });
-            onScroll();
-        }
     })();
 </script>
 

@@ -171,8 +171,8 @@ body::after {
 
 /* ========== Language Toggle ========== */
 .lang-zh, .lang-tw, .lang-en { display: none; }
-html[lang="zh-CN"] .lang-zh, html[lang="中文简体"] .lang-zh { display: inline-block; }
-html[lang="zh-TW"] .lang-tw, html[lang="中文繁体"] .lang-tw { display: inline-block; }
+html[lang="zh-CN"] .lang-zh { display: inline-block; }
+html[lang="zh-TW"] .lang-tw { display: inline-block; }
 html[lang="en"] .lang-en { display: inline-block; }
 html[lang="zh-CN"] span.lang-zh { display: inline; }
 html[lang="zh-TW"] span.lang-tw { display: inline; }

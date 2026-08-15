@@ -10,7 +10,7 @@
     /* ========== Detail Page — Layout ========== */
     .container { max-width:1100px; margin:0 auto; padding:30px 24px 60px; padding-top: calc(30px + var(--topbar-h, 56px)); position:relative; z-index:1; }
     .detail-layout { display:flex; gap:40px; align-items:flex-start; }
-    .detail-left { flex:0 0 52%; position:sticky; top:calc(var(--topbar-h, 56px) + 20px); }
+    .detail-left { flex:0 0 52%; position:sticky; top:calc(var(--topbar-h, 56px) + 20px); text-align:center; }
     .detail-right { flex:1; min-width:0; text-align:left; }
 
     /* ========== Detail Page — Main Image ========== */
@@ -38,11 +38,11 @@
     .color-selector-label { width:100%; text-align:center; font-size:13px; color:var(--text3); margin-bottom:4px; }
 
     /* ========== Detail Page — Product Name ========== */
-    h1 { font-size:2rem; margin-bottom:16px; font-weight:800; text-align:left; }
+    h1 { font-size:2rem; margin-bottom:24px; font-weight:800; text-align:left; animation:fadeInUp 0.5s ease both; }
 
     /* ========== Detail Page — Introduction ========== */
     .product-introduction {
-        background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+        background:var(--card); border:1px solid var(--border); border-radius:0;
         padding:20px 24px; margin-bottom:24px; line-height:1.8;
         color:var(--text); font-size:0.95rem;
     }
@@ -60,7 +60,7 @@
     .back-link:hover { transform:translateX(-4px); }
 
     /* ========== Detail Page — Buy Button & Hover Popup ========== */
-    .buy-section { position:relative; display:inline-block; margin-top:8px; }
+    .buy-section { position:relative; display:inline-block; margin-top:20px; }
     .buy-trigger {
       display:inline-flex; align-items:center; gap:8px;
       background:var(--theme); color:#fff; padding:16px 44px; border-radius:8px;
@@ -72,20 +72,22 @@
     .buy-icon-inline { width:22px; height:22px; object-fit:contain; vertical-align:middle; filter:brightness(0)invert(1); }
     .buy-trigger:hover { background:var(--theme2); box-shadow:0 8px 32px var(--theme-glow); transform:translateY(-2px); }
     .buy-popup {
-      position:absolute; bottom:calc(100% + 16px); left:50%; transform:translateX(-50%);
+      position:absolute; top:calc(100% + 16px); left:50%; transform:translateX(-50%);
       background:var(--card); border:1px solid var(--border); border-radius:12px;
       padding:12px 8px; display:flex; gap:10px;
       box-shadow:0 16px 48px rgba(0,0,0,0.25);
       opacity:0; visibility:hidden;
       transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
-      transform:translateX(-50%) translateY(8px);
+      transform:translateX(-50%) translateY(-8px);
       white-space:nowrap; z-index:100;
     }
     .buy-trigger:hover .buy-popup,
-    .buy-popup:hover { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+    .buy-popup:hover,
+    .buy-popup.open { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+    .buy-trigger:focus-visible { outline:2px solid var(--theme2); outline-offset:2px; }
     .buy-popup::after {
-      content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%);
-      border:8px solid transparent; border-top-color:var(--card);
+      content:''; position:absolute; bottom:100%; left:50%; transform:translateX(-50%);
+      border:8px solid transparent; border-bottom-color:var(--card);
     }
     .buy-platform {
       display:flex; flex-direction:column; align-items:center; gap:6px;
@@ -165,29 +167,30 @@
 </div>
 
 <div class="container">
+  <!-- 产品名称：整行标题，位于产品图与介绍框上方 -->
+  <h1 id="detail-name"></h1>
   <div class="detail-layout">
-    <!-- 左侧：产品主图 + 颜色选择器 -->
+    <!-- 左侧：产品主图 + 颜色选择器 + 立即购买 -->
     <div class="detail-left">
-      <div class="main-image"><img id="mainImage" src="" alt="产品主图"></div>
+      <div class="main-image"><img id="mainImage" src="" alt="产品主图" onerror="this.onerror=null;this.src='Pictures/components/KOOMZE.png';"></div>
       <div class="color-selector-label" id="colorLabel"></div>
       <div class="color-selector" id="colorSelector"></div>
+      <div class="buy-section">
+        <div class="buy-trigger" role="button" tabindex="0" aria-haspopup="true">
+          <span class="lang-zh"><img class="buy-icon-inline" src="Pictures/components/立即购买.svg" alt=""> 立即购买</span><span class="lang-tw"><img class="buy-icon-inline" src="Pictures/components/立即购买.svg" alt=""> 立即購買</span><span class="lang-en"><img class="buy-icon-inline" src="Pictures/components/立即购买.svg" alt=""> Buy Now</span>
+          <div class="buy-popup">
+            <a href="#" class="buy-platform taobao" target="_blank" rel="noopener" id="linkTaobao"><img class="buy-platform-icon" src="Pictures/components/淘宝.svg" alt="">淘宝</a>
+            <a href="#" class="buy-platform jd" target="_blank" rel="noopener" id="linkJd"><img class="buy-platform-icon" src="Pictures/components/京东.svg" alt="">京东</a>
+            <a href="#" class="buy-platform douyin" target="_blank" rel="noopener" id="linkDouyin"><img class="buy-platform-icon" src="Pictures/components/抖音.svg" alt="">抖音</a>
+          </div>
+        </div>
+      </div>
     </div>
-    <!-- 右侧：产品名称 + 介绍 + 购买 -->
+    <!-- 右侧：介绍 -->
     <div class="detail-right">
-      <h1 id="detail-name"></h1>
       <div class="product-introduction" id="productIntro">
         <div class="intro-title"><img class="section-icon" src="Pictures/components/信息.svg" alt="">产品信息</div>
         <div id="introContent"></div>
-      </div>
-      <div class="buy-section">
-        <div class="buy-trigger">
-          <span class="lang-zh"><img class="buy-icon-inline" src="Pictures/components/立即购买.svg" alt=""> 立即购买</span><span class="lang-tw"><img class="buy-icon-inline" src="Pictures/components/立即购买.svg" alt=""> 立即購買</span><span class="lang-en"><img class="buy-icon-inline" src="Pictures/components/立即购买.svg" alt=""> Buy Now</span>
-          <div class="buy-popup">
-            <a href="#" class="buy-platform taobao" target="_blank" id="linkTaobao"><img class="buy-platform-icon" src="Pictures/components/淘宝.svg" alt="">淘宝</a>
-            <a href="#" class="buy-platform jd" target="_blank" id="linkJd"><img class="buy-platform-icon" src="Pictures/components/京东.svg" alt="">京东</a>
-            <a href="#" class="buy-platform douyin" target="_blank" id="linkDouyin"><img class="buy-platform-icon" src="Pictures/components/抖音.svg" alt="">抖音</a>
-          </div>
-        </div>
       </div>
       <br>
       <a href="Product.html" class="back-link">← <span class="lang-zh">返回产品列表</span><span class="lang-tw">返回產品列表</span><span class="lang-en">Back to Products</span></a>
@@ -231,9 +234,7 @@
       if (!res.ok) return null;
       const data = await res.json();
       if (!data || data.length === 0) return null;
-      // 取第一条匹配记录
       const item = data[0];
-      const name = resolveName(item.productId, item.productId);
       return {
         id: item.productId, pid: item.productId,
         img: item.image,
@@ -242,17 +243,19 @@
         links: {
           taobao: item.buyLink1 || '#',
           jd: item.buyLink2 || '#',
-          douyin: item.buyLink3 || '#',
-          link4: item.buyLink4 || '',
-          link5: item.buyLink5 || ''
-        },
-        name_zh: name, name_tw: name, name_en: name
+          douyin: item.buyLink3 || '#'
+        }
       };
     } catch (e) { return null; }
   }
 
   function loadProduct() {
-    if (!product) { document.querySelector('.container').innerHTML='<p style="text-align:center;padding:60px;">产品不存在</p><a href="Main.html">返回首页</a>'; return false; }
+    if (!product) {
+      document.querySelector('.container').innerHTML =
+        '<p style="text-align:center;padding:60px;"><span class="lang-zh">产品不存在</span><span class="lang-tw">產品不存在</span><span class="lang-en">Product not found</span></p>' +
+        '<p style="text-align:center;"><a href="Main.html"><span class="lang-zh">返回首页</span><span class="lang-tw">返回首頁</span><span class="lang-en">Back to Home</span></a></p>';
+      return false;
+    }
     return true;
   }
 
@@ -275,9 +278,9 @@
       labelEl.textContent = '';
       return;
     }
-    labelEl.textContent = '选择颜色';
+    labelEl.innerHTML = '<span class="lang-zh">选择颜色</span><span class="lang-tw">選擇顏色</span><span class="lang-en">Select Color</span>';
     selectorEl.innerHTML = colors.map((c, i) =>
-      '<div class="color-dot' + (i === currentColorIndex ? ' active' : '') + '" data-index="' + i + '" data-label="' + escapeHTML(c.name) + '" style="background-image:url(\'' + escapeHTML(c.image) + '\');" title="' + escapeHTML(c.name) + '"></div>'
+      '<div class="color-dot' + (i === currentColorIndex ? ' active' : '') + '" data-index="' + i + '" data-label="' + escapeHTML(c.name) + '" style="background-image:url(\'' + escapeHTML(c.image || product.img) + '\');" title="' + escapeHTML(c.name) + '"></div>'
     ).join('');
     selectorEl.querySelectorAll('.color-dot').forEach(dot => {
       dot.addEventListener('click', function() {
@@ -291,21 +294,33 @@
     });
   }
 
-  function escapeHTML(str) {
-    if (!str) return '';
-    const div = document.createElement('div'); div.textContent = str; return div.innerHTML;
+  // 富文本消毒：剔除脚本/内联事件，仅保留安全的展示标签与属性
+  function sanitizeHTML(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('script,style,iframe,object,embed,link,meta,form').forEach(el => el.remove());
+    doc.querySelectorAll('*').forEach(el => {
+      Array.prototype.forEach.call(el.attributes, attr => {
+        const n = attr.name.toLowerCase(), v = (attr.value || '').trim().toLowerCase();
+        if (n.indexOf('on') === 0 || ((n === 'href' || n === 'src') && v.indexOf('javascript:') === 0)) {
+          el.removeAttribute(attr.name);
+        }
+      });
+    });
+    return doc.body.innerHTML;
   }
 
   function updateContent() {
-    document.getElementById('detail-name').innerText = getProductName(product);
+    const name = getProductName(product);
+    document.title = name + ' - KOOMZE';
+    document.getElementById('detail-name').innerText = name;
     document.getElementById('mainImage').src = getCurrentImage();
-    document.getElementById('mainImage').alt = getProductName(product);
+    document.getElementById('mainImage').alt = name;
 
     const introEl = document.getElementById('productIntro');
     const introContentEl = document.getElementById('introContent');
     if (introEl && introContentEl) {
       if (product.introduction && product.introduction.trim()) {
-        introContentEl.innerHTML = product.introduction;
+        introContentEl.innerHTML = sanitizeHTML(product.introduction);
         introEl.style.display = 'block';
       } else {
         introEl.style.display = 'none';
@@ -332,6 +347,23 @@
     if (buySection) buySection.style.display = hasLink ? 'inline-block' : 'none';
   }
 
+  function initBuyPopup() {
+    const trigger = document.querySelector('.buy-trigger');
+    const popup = document.querySelector('.buy-popup');
+    if (!trigger || !popup) return;
+    trigger.addEventListener('click', function (e) {
+      // 触屏设备没有 hover，点击展开购买平台
+      if (window.matchMedia('(hover: none)').matches) {
+        e.stopPropagation();
+        popup.classList.toggle('open');
+      }
+    });
+    trigger.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); popup.classList.toggle('open'); }
+    });
+    document.addEventListener('click', function () { popup.classList.remove('open'); });
+  }
+
   function hideLoader() {
     const loader = document.getElementById('pageLoader');
     if (loader) { loader.classList.add('hidden'); }
@@ -339,7 +371,9 @@
 
   async function init() {
     if (!rawId) {
-      document.querySelector('.container').innerHTML = '<p style="text-align:center;padding:60px;">缺少产品 ID 参数</p><a href="Product.html">返回产品列表</a>';
+      document.querySelector('.container').innerHTML =
+        '<p style="text-align:center;padding:60px;"><span class="lang-zh">缺少产品 ID 参数</span><span class="lang-tw">缺少產品 ID 參數</span><span class="lang-en">Missing product ID</span></p>' +
+        '<p style="text-align:center;"><a href="Product.html"><span class="lang-zh">返回产品列表</span><span class="lang-tw">返回產品列表</span><span class="lang-en">Back to Products</span></a></p>';
       hideLoader();
       return;
     }
@@ -357,6 +391,9 @@
 
     // 确定产品数据
     if (detailData) {
+      // ⚡ 名称映射已在上面构建完毕，此处再解析一次得到友好名称
+      const name = resolveName(detailData.pid, detailData.pid);
+      detailData.name_zh = detailData.name_tw = detailData.name_en = name;
       product = detailData;
     } else {
       // API 无数据，用兜底数据
@@ -367,6 +404,7 @@
 
     initCommon(function() { updateContent(); });
     updateContent();
+    initBuyPopup();
 
     // ⚡ 传入已获取的产品数据，避免导航重复请求
     initDynamicNav(products);

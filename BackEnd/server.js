@@ -1,4 +1,7 @@
-require('dotenv').config({ path: __dirname + '/.env' });
+const fs = require('fs');
+// 兼容两种 .env 位置：优先 BackEnd/.env（原约定），否则回退到项目根目录 .env
+const envFile = fs.existsSync(__dirname + '/.env') ? __dirname + '/.env' : __dirname + '/../.env';
+require('dotenv').config({ path: envFile });
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');

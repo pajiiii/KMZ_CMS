@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>KOOMZE 科曼者官网</title>
+    <meta name="description" content="KOOMZE 科曼者官网，专注于数码外设品牌，主营机械键盘、游戏鼠标、电竞耳机、蓝牙音箱、CCD相机等产品，提供产品详情、驱动下载与在线键盘测试服务。">
+    <meta name="keywords" content="KOOMZE,科曼者,机械键盘,游戏鼠标,电竞耳机,蓝牙音箱,CCD相机,数码外设,键盘测试,驱动下载">
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="common.css">
     <style>
@@ -437,16 +439,17 @@
         const grid = document.getElementById('featureGrid');
         if (!grid) return;
         grid.innerHTML = items.map((item, i) => {
-            const img = item.img || item.image || '';
-            const title = item.title || '';
+            const img = escapeHTML(item.img || item.image || '');
+            const title = escapeHTML(item.title || '');
+            const rawTitle = item.title || '';
             const pid = item.pid || item.productId || '';
-            const desc = item.description || '';
+            const desc = escapeHTML(item.description || '');
             const link = 'product-detail.html?id=' + encodeURIComponent(pid);
             const delay = (i * 0.05).toFixed(2);
             const descHTML = desc ? `<span style="display:block;font-size:0.55em;font-weight:400;opacity:0.7;margin-top:2px;">${desc}</span>` : '';
             return `
                 <a class="feature-card" href="${link}" style="animation-delay:${delay}s">
-                    <img src="${img}" alt="${title}" onerror="this.src='https://placehold.co/600x600/12141d/e8e9f0?text=${encodeURIComponent(title)}'">
+                    <img src="${img}" alt="${title}" onerror="this.src='https://placehold.co/600x600/12141d/e8e9f0?text=${encodeURIComponent(rawTitle)}'">
                     <div class="feature-card-overlay">
                         <span class="feature-title">${title}${descHTML}</span>
                         <span class="feature-card-btn"><img src="Pictures/components/查看.svg" alt="">查看详情</span>
@@ -501,10 +504,10 @@
 
         const makeSlideHTML = (item) => {
             const pid = item.productId || '';
-            const name = item.name || productNameMap[pid] || pid || 'KOOMZE';
-            const desc = item.description || '';
-            const bgImg = item.bgImage || '';
-            const fgImg = item.fgImage || '';
+            const name = escapeHTML(item.name || productNameMap[pid] || pid || 'KOOMZE');
+            const desc = escapeHTML(item.description || '');
+            const bgImg = escapeHTML(item.bgImage || '');
+            const fgImg = escapeHTML(item.fgImage || '');
             const link = 'product-detail.html?id=' + encodeURIComponent(pid);
             const descHTML = desc ? `<div class="mini-card-desc">${desc}</div>` : '';
             return `
@@ -588,14 +591,10 @@
 
     function updateMiniCarouselState(index) {
         if (miniTransitioning) return;
-        if (index < 0) {
-            miniCurrentIndex = miniCarouselRealCount - 1;
-        } else if (index >= miniCarouselRealCount) {
-            miniCurrentIndex = 0;
-        } else {
-            miniCurrentIndex = index;
-        }
-        updateMiniIndicators(miniCurrentIndex);
+        miniCurrentIndex = index;
+        const actualIndex = miniCurrentIndex < 0 ? miniCarouselRealCount - 1
+            : miniCurrentIndex >= miniCarouselRealCount ? 0 : miniCurrentIndex;
+        updateMiniIndicators(actualIndex);
         setMiniCarouselPos(miniCurrentIndex, true);
     }
 
@@ -673,17 +672,19 @@
     let carouselIndicatorsInitialized = false;
     let carouselTransitioning = false;
     let carouselSlideWidth = 0;
+    let carouselTransitionResetInitialized = false;
+    let carouselResizeInitialized = false;
 
     function renderCarousel() {
         const track = document.getElementById('carouselTrack');
         const indicators = document.getElementById('carouselIndicators');
         const makeSlideHTML = (item) => {
-            const descHTML = item.description ? `<div class="carousel-desc">${item.description}</div>` : '';
+            const descHTML = item.description ? `<div class="carousel-desc">${escapeHTML(item.description)}</div>` : '';
             return `
             <div class="carousel-slide">
-                <img src="${item.img}" alt="${item.title}" onerror="this.src='https://placehold.co/1200x520/12141d/e8e9f0?text=KOOMZE'">
+                <img src="${escapeHTML(item.img)}" alt="${escapeHTML(item.title)}" onerror="this.src='https://placehold.co/1200x520/12141d/e8e9f0?text=KOOMZE'">
                 <div class="carousel-overlay">
-                    <div class="carousel-title">${item.title}</div>
+                    <div class="carousel-title">${escapeHTML(item.title)}</div>
                     ${descHTML}
                     <a class="carousel-btn" href="${item.link || '#'}"><img src="Pictures/components/查看.svg" alt="">查看详情</a>
                 </div>
@@ -774,6 +775,8 @@
     }
 
     function initCarouselTransitionReset() {
+        if (carouselTransitionResetInitialized) return;
+        carouselTransitionResetInitialized = true;
         const trackNode = document.getElementById('carouselTrack');
         if (!trackNode) return;
         trackNode.addEventListener('transitionstart', () => { carouselTransitioning = true; });
@@ -794,6 +797,8 @@
     }
 
     function initCarouselResize() {
+        if (carouselResizeInitialized) return;
+        carouselResizeInitialized = true;
         window.addEventListener('resize', () => {
             updateCarouselSlideWidth();
             setCarouselPosition(currentSlideIndex, false);

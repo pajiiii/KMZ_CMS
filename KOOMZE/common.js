@@ -2,6 +2,20 @@
    KOOMZE Common Scripts — shared across all pages
    ============================================================ */
 
+/**
+ * Escape a string for safe insertion into HTML text or attribute context.
+ * Escapes & < > " ' so it is safe for both element content and double/single-quoted attributes.
+ */
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 let currentLang = 'zh-CN';
 
 /**
@@ -143,7 +157,7 @@ async function initDynamicNav(products) {
         let items = groups[cat];
         if (items.length === 0) items = NAV_FALLBACK[cat] || [];
         menu.innerHTML = items.map(p =>
-            '<a class="dropdown-item" href="product-detail.html?id=' + encodeURIComponent(p.productId) + '">' + p.name + '</a>'
+            '<a class="dropdown-item" href="product-detail.html?id=' + encodeURIComponent(p.productId) + '">' + escapeHTML(p.name) + '</a>'
         ).join('');
     });
 }
@@ -161,8 +175,8 @@ async function initFooterSocial() {
             if (data && data.length > 0) {
                 el.innerHTML = data.sort((a,b) => (a.order||0)-(b.order||0)).map(item =>
                     '<span class="social-platform">' +
-                    '<span class="social-name">' + item.name + '</span>' +
-                    '<span class="social-qr"><img src="' + item.qrImage + '" alt="' + item.name + ' 二维码"></span>' +
+                    '<span class="social-name">' + escapeHTML(item.name) + '</span>' +
+                    '<span class="social-qr"><img src="' + escapeHTML(item.qrImage) + '" alt="' + escapeHTML(item.name) + ' 二维码"></span>' +
                     '</span>'
                 ).join('<span class="social-sep">|</span>');
                 return;
