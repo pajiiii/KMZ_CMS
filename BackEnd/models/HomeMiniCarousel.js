@@ -11,3 +11,10 @@ const HomeMiniCarouselSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 module.exports = mongoose.model('HomeMiniCarousel', HomeMiniCarouselSchema);
+
+// 区域总开关单独保存，不修改轮播条目；未配置时默认关闭。
+const HomeMiniCarouselSettingsSchema = new mongoose.Schema({
+  _id: { type: String, default: 'global' },
+  enabled: { type: Boolean, default: false }
+});
+module.exports.Settings = mongoose.model('HomeMiniCarouselSettings', HomeMiniCarouselSettingsSchema, 'home_mini_carousel_settings');

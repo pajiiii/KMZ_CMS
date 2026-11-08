@@ -109,7 +109,7 @@
         /* ========== Main Page — Mini Carousel (产品穿出卡片) ========== */
         .mini-carousel-section {
             width: 100%; padding: 0 5% 0; position: relative; z-index: 1;
-            margin-bottom: 0; display: none; /* 默认隐藏，有数据时 JS 显示 */
+            margin-bottom: 0; display: none; /* 总开关开启且有内容时才显示 */
         }
         .mini-carousel-section.has-data { display: block; margin-top: 56px; }
         .mini-carousel-window {
@@ -344,43 +344,25 @@
 
 <script src="common.js"></script>
 <script>
-    const CAROUSEL_FALLBACK = [
-        { pid: "H75", img: "Pictures/官网长图/H75.png",    title: "H75键盘", description: "" },
-        { pid: "M7",  img: "Pictures/官网长图/画板 1.png",  title: "M7鼠标",  description: "" },
-        { pid: "K9pAI",img: "Pictures/官网长图/画板 2.png",  title: "K9pAI耳机",description: "" },
-        { pid: "S9",  img: "Pictures/官网长图/画板 3.png",  title: "S9音箱",  description: "" },
-        { pid: "CD",  img: "Pictures/官网长图/画板 4.png",  title: "CD机",    description: "" }
-    ];
-    const FEATURES_FALLBACK = [
-        { pid: "C25", img: "Pictures/官网小标签图/CCD相机.png",       title: "C25相机" },
-        { pid: "CD",  img: "Pictures/官网小标签图/CD机.png",          title: "CD机" },
-        { pid: "H75", img: "Pictures/官网小标签图/H75键盘.png",       title: "H75键盘" },
-        { pid: "K1",  img: "Pictures/官网小标签图/K1头戴式耳机.png",   title: "K1耳机" },
-        { pid: "K9pAI",img: "Pictures/官网小标签图/K9＋AI款.png",      title: "K9pAI耳机" },
-        { pid: "M7",  img: "Pictures/官网小标签图/M7鼠标.png",        title: "M7鼠标" },
-        { pid: "S6",  img: "Pictures/官网小标签图/S6.png",           title: "S6音箱" },
-        { pid: "S9",  img: "Pictures/官网小标签图/S9.png",           title: "S9音箱" }
-    ];
-
     let CAROUSEL_ITEMS = [];
     let CAROUSEL_REAL_SLIDE_COUNT = 0;
+    let carouselLoadFailed = false;
     let productNameMap = {}; // productId → name
 
     async function fetchFromAPI(endpoint) {
         try {
             const res = await fetch(endpoint);
-            if (!res.ok) return null;
+            if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
-            return (data && data.length > 0) ? data : null;
-        } catch (e) { console.log('API 不可用，使用本地兜底数据: ' + endpoint); return null; }
+            if (!Array.isArray(data)) throw new Error('数据格式错误');
+            return data;
+        } catch (e) { console.warn('内容加载失败: ' + endpoint, e.message); return null; }
     }
 
     // 构建 productId → 产品名称 映射表
     function buildProductNameMap(products) {
-        if (products && products.length > 0) {
-            productNameMap = {};
-            products.forEach(p => { productNameMap[p.productId] = p.name; });
-        }
+        productNameMap = {};
+        (products || []).forEach(p => { productNameMap[p.productId] = p.name; });
     }
 
     // 通过 productId 获取产品名称，兜底使用 item 自带 title
@@ -400,7 +382,8 @@
         buildProductNameMap(products);
 
         // 轮播数据
-        if (carouselData) {
+        carouselLoadFailed = carouselData === null;
+        if (Array.isArray(carouselData)) {
             CAROUSEL_ITEMS = carouselData.map(item => ({
                 id: item._id, pid: item.productId,
                 img: item.image,
@@ -409,35 +392,32 @@
                 link: 'product-detail.html?id=' + encodeURIComponent(item.productId || '')
             }));
         } else {
-            CAROUSEL_ITEMS = CAROUSEL_FALLBACK.map(item => ({
-                id: item.pid, pid: item.pid, img: item.img,
-                title: item.title, description: item.description || '',
-                link: 'product-detail.html?id=' + encodeURIComponent(item.pid)
-            }));
+            CAROUSEL_ITEMS = [];
         }
         CAROUSEL_REAL_SLIDE_COUNT = CAROUSEL_ITEMS.length;
 
         // 产品卡片数据
-        if (featuresData) {
+        if (Array.isArray(featuresData)) {
             renderFeatureCards(featuresData.map(item => ({
                 pid: item.productId, img: item.image,
                 title: resolveName(item, ''),
                 description: item.description || ''
             })));
         } else {
-            renderFeatureCards(FEATURES_FALLBACK.map(item => ({
-                pid: item.pid, img: item.img,
-                title: item.title, description: item.description || ''
-            })));
+            renderFeatureCards([], true);
         }
 
         return products; // 返回给调用方，传给 initDynamicNav
     }
 
     // 渲染产品卡片区域（feature grid）
-    function renderFeatureCards(items) {
+    function renderFeatureCards(items, failed = false) {
         const grid = document.getElementById('featureGrid');
         if (!grid) return;
+        if (!items.length) {
+            grid.innerHTML = '<div role="status" style="grid-column:1/-1;text-align:center;padding:48px;">' + contentStateHTML(failed) + '</div>';
+            return;
+        }
         grid.innerHTML = items.map((item, i) => {
             const img = escapeHTML(item.img || item.image || '');
             const title = escapeHTML(item.title || '');
@@ -467,21 +447,26 @@
     let miniTransitioning = false;
     let miniSlideWidth = 0;
 
-    // 从 API 获取小型轮播数据，无数据则隐藏整个区块
+    // 小轮播总开关默认关闭；关闭时不加载条目，异常时保留隐藏状态。
     async function fetchMiniCarousel() {
         try {
+            const settingsRes = await fetch('/api/content/home-mini-carousel/settings');
+            if (!settingsRes.ok) throw new Error('读取显示设置失败');
+            const settings = await settingsRes.json();
+            if (settings?.enabled !== true) return [];
             const res = await fetch('/api/content/home-mini-carousel');
             if (!res.ok) {
-                console.warn('[MiniCarousel] API 返回状态码 ' + res.status + '，可能数据库无数据');
+                console.warn('[MiniCarousel] 内容加载失败，状态码 ' + res.status);
                 return null;
             }
             const data = await res.json();
             if (!data || data.length === 0) {
-                console.log('[MiniCarousel] API 返回空数组，小轮播将保持隐藏');
+                console.log('[MiniCarousel] 没有内容，隐藏小轮播区域');
             } else {
                 console.log('[MiniCarousel] 成功获取 ' + data.length + ' 条数据');
             }
-            return (data && data.length > 0) ? data : null;
+            if (!Array.isArray(data)) throw new Error('小轮播数据格式错误');
+            return data;
         } catch (e) {
             console.error('[MiniCarousel] API 请求失败:', e.message || e);
             return null;
@@ -495,9 +480,17 @@
         if (!section || !track || !indicators) return;
 
         if (!items || items.length === 0) {
+            MINI_CAROUSEL_ITEMS = [];
+            miniCarouselRealCount = 0; miniCurrentIndex = 0; miniTransitioning = false; miniSlideWidth = 0;
+            if (miniTimer) { clearInterval(miniTimer); miniTimer = null; }
             section.classList.remove('has-data');
+            track.innerHTML = '';
+            track.style.transition = 'none'; track.style.transform = 'translateX(0)';
+            indicators.innerHTML = '';
+            ['miniCarouselPrev', 'miniCarouselNext'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
             return;
         }
+        miniTransitioning = false;
         section.classList.add('has-data');
         MINI_CAROUSEL_ITEMS = items;
         miniCarouselRealCount = items.length;
@@ -524,7 +517,7 @@
             </div>`;
         };
 
-        // 【修复】只有 1 条数据时：不做无限循环克隆，直接显示单张卡片居中
+        // 单条数据不克隆、不自动滚动。
         if (miniCarouselRealCount === 1) {
             track.innerHTML = makeSlideHTML(items[0]);
             // 单张时隐藏箭头和指示器
@@ -582,7 +575,7 @@
 
     function setMiniCarouselPos(index, animated = true) {
         const track = document.getElementById('miniCarouselTrack');
-        if (!track) return;
+        if (!track || miniCarouselRealCount <= 1) return;
         track.style.transition = animated ? 'transform 0.5s ease' : 'none';
         if (!miniSlideWidth) updateMiniSlideWidth();
         // index 0 = real first slide, but we have clone before it, so +1 offset
@@ -656,15 +649,14 @@
     async function initMiniCarousel() {
         const data = await fetchMiniCarousel();
         const items = data ? data.sort((a, b) => (a.order || 0) - (b.order || 0)) : null;
+        renderMiniCarousel(items || []);
         if (items && items.length > 0) {
-            renderMiniCarousel(items);
             if (!miniCarouselEventsInitialized) {
                 initMiniCarouselEvents();
                 miniCarouselEventsInitialized = true;
             }
             startMiniAutoScroll();
         }
-        // 无数据时区块保持隐藏状态
     }
 
     let currentSlideIndex = 0;
@@ -678,6 +670,16 @@
     function renderCarousel() {
         const track = document.getElementById('carouselTrack');
         const indicators = document.getElementById('carouselIndicators');
+        ['carouselPrev', 'carouselNext'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = CAROUSEL_REAL_SLIDE_COUNT > 1 ? '' : 'none'; });
+        carouselTransitioning = false;
+        if (CAROUSEL_REAL_SLIDE_COUNT === 0) {
+            if (carouselTimer) { clearInterval(carouselTimer); carouselTimer = null; }
+            currentSlideIndex = 0;
+            track.innerHTML = '<div class="carousel-slide" role="status" style="display:flex;align-items:center;justify-content:center;">' + contentStateHTML(carouselLoadFailed) + '</div>';
+            track.style.transition = 'none'; track.style.transform = 'translateX(0)';
+            indicators.innerHTML = '';
+            return;
+        }
         const makeSlideHTML = (item) => {
             const descHTML = item.description ? `<div class="carousel-desc">${escapeHTML(item.description)}</div>` : '';
             return `
@@ -725,6 +727,7 @@
     }
 
     function setCarouselPosition(index, animated = true) {
+        if (CAROUSEL_REAL_SLIDE_COUNT === 0) return;
         const trackNode = document.getElementById('carouselTrack');
         if (!trackNode) return;
         trackNode.style.transition = animated ? 'transform 0.6s ease' : 'none';
@@ -733,6 +736,7 @@
     }
 
     function updateCarouselState(index) {
+        if (CAROUSEL_REAL_SLIDE_COUNT === 0) return;
         if (index < 0) {
             currentSlideIndex = -1;
         } else if (index > CAROUSEL_REAL_SLIDE_COUNT) {
@@ -758,6 +762,8 @@
 
     function startCarouselAutoScroll() {
         if (carouselTimer) clearInterval(carouselTimer);
+        carouselTimer = null;
+        if (CAROUSEL_REAL_SLIDE_COUNT <= 1) return;
         carouselTimer = setInterval(nextCarouselSlide, 5000);
     }
 

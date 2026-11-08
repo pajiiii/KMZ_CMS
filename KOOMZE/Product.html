@@ -54,20 +54,12 @@
     }
     .driver-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
     .driver {
-      background: var(--card); border: 1px solid var(--border); padding: 24px 18px 18px;
+      background: var(--card); border: 1px solid var(--border); padding: 20px 18px;
       border-radius: 0; transition: 0.3s; backdrop-filter: blur(4px);
-      display: flex; flex-direction: column; gap: 12px;
+      display: flex; flex-direction: column; gap: 18px;
     }
     .driver:hover { border-color: var(--border2); box-shadow: 0 12px 30px var(--shadow); transform: translateY(-4px); }
-    .driver-model {
-      font-size: 0.8rem; font-weight: 600; color: var(--theme);
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
     .driver-name { font-size: 1.1rem; font-weight: 700; color: var(--text); line-height: 1.3; }
-    .driver-meta { display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; color: var(--text2); }
-    .driver-meta .meta-row { display: flex; align-items: baseline; gap: 6px; }
-    .driver-meta .meta-label { font-weight: 600; color: var(--text3); white-space: nowrap; }
-    .driver-meta .meta-value { color: var(--text2); word-break: break-all; }
     .driver-actions { display: flex; gap: 10px; margin-top: auto; flex-wrap: wrap; }
     .dl-btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -181,13 +173,12 @@
 <script>
   let PRODUCTS = [];
   let DRIVERS = [];
+  let productTagsLoadFailed = false, driverLoadFailed = false, productsRequestId = 0;
   let productNameMap = {}; // productId → name
 
   function buildProductNameMap(products) {
-    if (products && products.length > 0) {
-      productNameMap = {};
-      products.forEach(p => { productNameMap[p.productId] = p.name; });
-    }
+    productNameMap = {};
+    (products || []).forEach(p => { productNameMap[p.productId] = p.name; });
   }
 
   function resolveProductName(item, fallbackKey) {
@@ -198,14 +189,17 @@
 
   // 从 API 拉产品标签列表，可选按分类筛选
   async function initProducts(category) {
+    const requestId = ++productsRequestId;
     try {
       const apiUrl = category
         ? '/api/content/product-tag?category=' + encodeURIComponent(category)
         : '/api/content/product-tag';
       const res = await fetch(apiUrl);
-      if (!res.ok) { PRODUCTS = []; return; }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      if (!data || data.length === 0) { PRODUCTS = []; return; }
+      if (requestId !== productsRequestId) return;
+      if (!Array.isArray(data)) throw new Error('产品标签格式错误');
+      productTagsLoadFailed = false;
       const catMap = { '键盘':'keyboard','鼠标':'mouse','耳机':'earphone','音箱':'speaker','相机':'camera','其他配件':'accessory' };
       PRODUCTS = data.map(item => {
         const pid = item.productId || '';
@@ -218,26 +212,33 @@
           name_zh: name, name_tw: name, name_en: name
         };
       });
-    } catch (e) { PRODUCTS = []; }
+    } catch (e) {
+      if (requestId === productsRequestId) { PRODUCTS = []; productTagsLoadFailed = true; }
+    }
   }
 
   async function loadDrivers() {
     try {
       const res = await fetch('/api/content/driver');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       if (res.ok) {
         const data = await res.json();
+        if (!Array.isArray(data)) throw new Error('驱动数据格式错误');
+        driverLoadFailed = false;
         if (data && data.length > 0) {
           DRIVERS = data.map(d => ({
             id: d._id, type: d.type, model: d.model || '',
             name: d.name, version: d.version,
             description: d.description || '',
             file: d.file,
+            hasClient: d.hasClient,
+            hasWeb: d.hasWeb,
             webDriverLink: d.webDriverLink || ''
           }));
           return;
         }
       }
-    } catch(e) {}
+    } catch(e) { driverLoadFailed = true; }
     DRIVERS = [];
   }
 
@@ -249,7 +250,6 @@
     return p['name_'+(currentLang==='zh-CN'?'zh':currentLang==='zh-TW'?'tw':'en')] || pid;
   }
   function getDriverName(d) { return d.name || ''; }
-  function getDriverDesc(d) { return d.description || ''; }
 
   function renderProducts() {
     const container = document.getElementById('productList');
@@ -259,16 +259,24 @@
       return true;
     });
     if (!filtered.length) {
-      container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text2);">✨ <span class="lang-zh">没有找到相关产品</span><span class="lang-tw">沒有找到相關產品</span><span class="lang-en">No products found</span></div>';
+      container.innerHTML = '<div role="status" style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text2);">' + (productTagsLoadFailed ? contentStateHTML(true) : '<span class="lang-zh">没有找到相关产品</span><span class="lang-tw">沒有找到相關產品</span><span class="lang-en">No products found</span>') + '</div>';
       return;
     }
     container.innerHTML = filtered.map(p => {
       const pid = p.pid || p.id || '';
-      return '<div class="product" data-product-id="' + pid + '"><img src="' + p.img + '" alt="' + getProductName(p) + '" onerror="this.src=\'https://placehold.co/400x240?text=KOOMZE\'"><div class="name">' + getProductName(p) + '</div></div>';
+      return '<div class="product" data-product-id="' + escapeHTML(pid) + '"><img src="' + escapeHTML(p.img) + '" alt="' + escapeHTML(getProductName(p)) + '" onerror="this.onerror=null;this.src=\'Pictures/components/KOOMZE.png\'"><div class="name">' + escapeHTML(getProductName(p)) + '</div></div>';
     }).join('');
     document.querySelectorAll('.product').forEach(el => el.addEventListener('click', () => {
       window.location.href = 'product-detail.html?id=' + encodeURIComponent(el.dataset.productId);
     }));
+  }
+
+  function getDriverAvailability(d) {
+    const file = safeWebURL(d.file), webLink = safeWebURL(d.webDriverLink);
+    return {
+      hasClient: (typeof d.hasClient === 'boolean' ? d.hasClient : Boolean(file)) && Boolean(file),
+      hasWeb: (typeof d.hasWeb === 'boolean' ? d.hasWeb : Boolean(webLink)) && Boolean(webLink)
+    };
   }
 
   function renderDrivers() {
@@ -283,6 +291,8 @@
     const groups = {};
     typeOrder.forEach(t => { groups[t] = []; });
     DRIVERS.forEach(d => {
+      const availability = getDriverAvailability(d);
+      if (!availability.hasClient && !availability.hasWeb) return;
       const t = d.type || '键盘';
       if (groups[t]) groups[t].push(d); else groups[t] = [d];
     });
@@ -298,17 +308,16 @@
       const label = (typeLabels[type] && typeLabels[type][langKey]) || type;
       html += '<div class="driver-section"><div class="driver-section-title">' + label + '</div><div class="driver-grid">';
       items.forEach(d => {
-        const model = d.model || '', name = getDriverName(d), version = d.version || '', desc = getDriverDesc(d);
-        const webLink = d.webDriverLink || '', fileLink = d.file || d.link || '';
-        const modelHTML = model ? '<div class="driver-model">' + model + '</div>' : '';
-        const versionRow = version ? '<div class="meta-row"><span class="meta-label">版本：</span><span class="meta-value">' + version + '</span></div>' : '';
-        const descRow = desc ? '<div class="meta-row"><span class="meta-label">说明：</span><span class="meta-value">' + desc + '</span></div>' : '';
-        html += '<div class="driver">' + modelHTML + '<div class="driver-name">' + name + '</div><div class="driver-meta">' + descRow + versionRow + '</div><div class="driver-actions"><a href="' + fileLink + '" class="dl-btn" download>' + dlIcon + ' <span class="lang-zh">立即下载</span><span class="lang-tw">立即下載</span><span class="lang-en">Download</span></a>' + (webLink ? '<a href="' + webLink + '" class="dl-btn web-btn" target="_blank" rel="noopener">' + webIcon + ' <span class="lang-zh">网页版驱动</span><span class="lang-tw">網頁版驅動</span><span class="lang-en">Web Driver</span></a>' : '') + '</div></div>';
+        const name = escapeHTML(getDriverName(d)), availability = getDriverAvailability(d);
+        const webLink = escapeHTML(safeWebURL(d.webDriverLink)), fileLink = escapeHTML(safeWebURL(d.file));
+        const clientButton = availability.hasClient ? '<a href="' + fileLink + '" class="dl-btn" download>' + dlIcon + ' <span class="lang-zh">立即下载</span><span class="lang-tw">立即下載</span><span class="lang-en">Download</span></a>' : '';
+        const webButton = availability.hasWeb ? '<a href="' + webLink + '" class="dl-btn web-btn" target="_blank" rel="noopener">' + webIcon + ' <span class="lang-zh">网页版驱动</span><span class="lang-tw">網頁版驅動</span><span class="lang-en">Web Driver</span></a>' : '';
+        html += '<div class="driver"><div class="driver-name">' + name + '</div><div class="driver-actions">' + clientButton + webButton + '</div></div>';
       });
       html += '</div></div>';
     });
     if (!html) {
-      html = '<div class="driver-empty"><span class="lang-zh">📦 还未上传驱动文件</span><span class="lang-tw">📦 還未上傳驅動文件</span><span class="lang-en">📦 No driver files uploaded yet</span></div>';
+      html = '<div class="driver-empty" role="status">' + (driverLoadFailed ? contentStateHTML(true) : '<span class="lang-zh">暂无可用驱动</span><span class="lang-tw">暫無可用驅動</span><span class="lang-en">No drivers available</span>') + '</div>';
     }
     container.innerHTML = html;
   }

@@ -8,6 +8,7 @@
     <!-- Quill 富文本编辑器 CDN -->
     <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+    <script src="/common.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -73,6 +74,13 @@
         .item .del-btn:hover { background: #2a1a1a; color: #e74c3c; }
         .empty { color: #6a6c7a; text-align: center; padding: 16px 0; font-size: 13px; }
         .field-hint { color: #6a6c7a; font-size: 12px; margin-top: 2px; }
+        .form-group label.driver-toggle { display: flex; align-items: center; gap: 8px; }
+        .form-group .driver-toggle input { width: auto; margin: 0; accent-color: #e33f3f; }
+        .upload-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .region-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 18px; padding: 14px; border: 1px solid #2e303a; border-radius: 10px; }
+        .region-controls[hidden] { display: none; }
+        .region-controls button { padding: 7px 20px; border: 1px solid #e33f3f; border-radius: 8px; background: transparent; color: #e8e8f0; cursor: pointer; }
+        .region-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
         .upload-row { display: flex; gap: 8px; align-items: center; }
         .upload-row input { flex: 1; }
         .upload-btn {
@@ -321,6 +329,12 @@
         <button class="tab-btn" data-type="social">官方账号管理</button>
     </div>
 
+    <div class="region-controls" id="miniCarouselControls" hidden>
+        <strong>首页小轮播</strong>
+        <span id="miniCarouselStatus" role="status">已关闭</span>
+        <button type="button" id="miniCarouselToggle" aria-pressed="false" disabled>显示</button>
+    </div>
+
     <!-- 表单区域 -->
     <form id="uploadForm">
         <div id="editIndicator" class="edit-indicator">
@@ -492,9 +506,9 @@
                 { key: 'image', label: '详情页默认主图（颜色列表为空时使用）', type: 'image', required: true, placeholder: 'https://...' },
                 { key: 'buyLink1', label: '购买链接 1（如淘宝）', type: 'url', required: false, placeholder: 'https://...' },
                 { key: 'buyLink2', label: '购买链接 2（如京东）', type: 'url', required: false, placeholder: 'https://...' },
-                { key: 'buyLink3', label: '购买链接 3（如拼多多）', type: 'url', required: false, placeholder: 'https://...' },
-                { key: 'buyLink4', label: '购买链接 4（可选）', type: 'url', required: false, placeholder: 'https://...' },
-                { key: 'buyLink5', label: '购买链接 5（可选）', type: 'url', required: false, placeholder: 'https://...' }
+                { key: 'buyLink3', label: '购买链接 3（抖音）', type: 'url', required: false, placeholder: 'https://...' },
+                { key: 'buyLink4', label: '购买链接 4（仅后台保留）', type: 'url', required: false, placeholder: 'https://...' },
+                { key: 'buyLink5', label: '购买链接 5（仅后台保留）', type: 'url', required: false, placeholder: 'https://...' }
             ],
             label: '产品详情页',
             hasColors: true,       // 标记：需要渲染颜色管理区域
@@ -507,8 +521,10 @@
                 { key: 'name', label: '驱动名称', type: 'text', required: true, placeholder: '如：H75 键盘驱动 v2.3' },
                 { key: 'version', label: '版本号', type: 'text', required: false, placeholder: '如 v2.3.1' },
                 { key: 'description', label: '驱动描述（适用说明等）', type: 'text', required: false, placeholder: '如：支持 Windows 10/11，含宏编程功能' },
-                { key: 'file', label: '驱动文件', type: 'file', required: true, placeholder: '选择本地驱动文件上传' },
-                { key: 'webDriverLink', label: '网页版驱动链接（可选）', type: 'url', required: false, placeholder: 'https://... 留空则不显示网页版驱动按钮' }
+                { key: 'hasClient', label: '提供客户端', type: 'checkbox', defaultValue: true },
+                { key: 'file', label: '客户端文件', type: 'file', required: false, placeholder: '选择本地驱动文件上传' },
+                { key: 'hasWeb', label: '提供网页端', type: 'checkbox', defaultValue: false },
+                { key: 'webDriverLink', label: '网页端链接', type: 'url', required: false, placeholder: 'https://...' }
             ],
             label: '驱动文件'
         },
@@ -525,6 +541,9 @@
     let currentType = 'product';
     let editingId = null; // 正在编辑的记录 _id，null 表示新建模式
     let cachedListData = []; // 缓存当前列表数据，用于搜索/筛选
+    let listRequestId = 0, editRequestId = 0, formRevision = 0;
+    let miniCarouselEnabled = false, miniCarouselSettingsLoaded = false;
+    let miniCarouselSettingsLoading = false, miniCarouselSettingsSaving = false, miniCarouselSettingsRequestId = 0;
 
     const tabContainer = document.getElementById('tabContainer');
     const formFields = document.getElementById('formFields');
@@ -537,6 +556,10 @@
     const cancelEditBtn = document.getElementById('cancelEditBtn');
     const cancelEditBtn2 = document.getElementById('cancelEditBtn2');
     const submitBtnText = document.getElementById('submitBtnText');
+    const miniCarouselControls = document.getElementById('miniCarouselControls');
+    const miniCarouselToggle = document.getElementById('miniCarouselToggle');
+    const miniCarouselStatus = document.getElementById('miniCarouselStatus');
+    miniCarouselToggle.addEventListener('click', toggleMiniCarouselVisibility);
 
     // ========== 标签切换 ==========
     function switchTab(type) {
@@ -550,6 +573,66 @@
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.type === type));
         renderForm(type);
         loadList(type);
+        miniCarouselControls.hidden = type !== 'home-mini-carousel';
+        if (type === 'home-mini-carousel') loadMiniCarouselSettings();
+    }
+
+    function renderMiniCarouselControls() {
+        miniCarouselToggle.textContent = miniCarouselEnabled ? '关闭' : '显示';
+        miniCarouselToggle.setAttribute('aria-pressed', String(miniCarouselEnabled));
+        miniCarouselToggle.disabled = !miniCarouselSettingsLoaded || miniCarouselSettingsLoading || miniCarouselSettingsSaving;
+        miniCarouselStatus.textContent = miniCarouselSettingsSaving ? '保存中…'
+            : miniCarouselSettingsLoading ? '读取中…'
+            : !miniCarouselSettingsLoaded ? '读取失败，请刷新重试'
+            : miniCarouselEnabled ? '已开启' : '已关闭';
+    }
+
+    async function loadMiniCarouselSettings() {
+        if (miniCarouselSettingsSaving) return;
+        const requestId = ++miniCarouselSettingsRequestId;
+        miniCarouselSettingsLoading = true;
+        renderMiniCarouselControls();
+        try {
+            const res = await authFetch('/api/content/home-mini-carousel/settings');
+            if (!res.ok) throw new Error('读取小轮播显示设置失败');
+            const data = await res.json();
+            if (typeof data?.enabled !== 'boolean') throw new Error('小轮播显示设置格式错误');
+            if (requestId !== miniCarouselSettingsRequestId) return;
+            miniCarouselEnabled = data.enabled;
+            miniCarouselSettingsLoaded = true;
+        } catch (err) {
+            if (requestId !== miniCarouselSettingsRequestId) return;
+            miniCarouselSettingsLoaded = false;
+            if (currentType === 'home-mini-carousel') showMessage(err.message, 'error');
+        } finally {
+            if (requestId === miniCarouselSettingsRequestId) {
+                miniCarouselSettingsLoading = false;
+                renderMiniCarouselControls();
+            }
+        }
+    }
+
+    async function toggleMiniCarouselVisibility() {
+        if (!miniCarouselSettingsLoaded || miniCarouselSettingsLoading || miniCarouselSettingsSaving) return;
+        ++miniCarouselSettingsRequestId;
+        miniCarouselSettingsSaving = true;
+        renderMiniCarouselControls();
+        try {
+            const res = await authFetch('/api/content/home-mini-carousel/settings', {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: !miniCarouselEnabled })
+            });
+            const data = await res.json();
+            if (!res.ok || typeof data?.enabled !== 'boolean') throw new Error(data?.error || '保存小轮播显示设置失败');
+            miniCarouselEnabled = data.enabled;
+            showMessage(miniCarouselEnabled ? '首页小轮播显示已开启' : '首页小轮播已关闭');
+        } catch (err) {
+            miniCarouselSettingsLoaded = false;
+            showMessage(err.message || '保存失败，请刷新重试', 'error');
+        } finally {
+            miniCarouselSettingsSaving = false;
+            renderMiniCarouselControls();
+        }
     }
 
     // ========== 渲染表单 ==========
@@ -559,19 +642,27 @@
         let html = '<div style="margin-bottom:12px;font-size:14px;color:#a8aab8;">' + config.label + '</div>';
         config.fields.forEach(f => {
             const requiredMark = f.required ? ' <span class="required-badge"><img src="../Pictures/admin_components/必填.svg" alt="">必填</span>' : '';
-            if (f.type === 'image') {
+            if (f.type === 'checkbox') {
+                html += '<div class="form-group"><label class="driver-toggle" for="field_' + f.key + '"><input type="checkbox" id="field_' + f.key + '"' + (f.defaultValue ? ' checked' : '') + '>' + f.label + '</label></div>';
+            } else if (f.type === 'image') {
                 html += '<div class="form-group"><label>' + f.label + requiredMark + '</label><div class="upload-row"><input type="text" id="field_' + f.key + '" placeholder="' + (f.placeholder||'') + '" ' + (f.required?'required':'') + '><button type="button" class="upload-btn" data-target="field_' + f.key + '"><img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> 本地上传</button></div><img class="img-preview" id="preview_' + f.key + '" alt="预览"><div class="field-hint">粘贴图片URL 或点击「本地上传」选择本地图片</div></div>';
             } else if (f.type === 'pid') {
                 html += '<div class="form-group" style="position:relative;"><label>' + f.label + requiredMark + '</label><input type="text" id="field_' + f.key + '" placeholder="' + (f.placeholder||'') + '" ' + (f.required?'required':'') + ' autocomplete="off"><div class="pid-suggest" id="suggest_' + f.key + '"></div><div class="field-hint" id="hint_' + f.key + '" style="color:#2ecc71;display:none;"></div><div class="field-hint">输入产品 ID，下方对照表可查所有 ID ↔ 名称</div></div>';
             } else if (f.type === 'select') {
                 html += '<div class="form-group"><label>' + f.label + requiredMark + '</label><select id="field_' + f.key + '" ' + (f.required?'required':'') + '><option value="">-- 请选择 --</option>' + (f.options||[]).map(o => '<option value="' + o + '">' + o + '</option>').join('') + '</select></div>';
             } else if (f.type === 'file') {
-                html += '<div class="form-group"><label>' + f.label + requiredMark + '</label><div class="upload-row"><input type="text" id="field_' + f.key + '" placeholder="上传后自动填入" ' + (f.required?'required':'') + ' readonly><button type="button" class="upload-btn" data-target="field_' + f.key + '" data-type="driver"><img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> 选择文件</button></div><div class="field-hint">支持 zip/rar/exe/7z 等格式，最大 200MB</div></div>';
+                html += '<div class="form-group"><label>' + f.label + requiredMark + '</label><div class="upload-row"><input type="text" id="field_' + f.key + '" placeholder="上传后自动填入" ' + (f.required?'required':'') + ' readonly><button type="button" class="upload-btn" data-target="field_' + f.key + '" data-type="driver"><img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> 选择文件</button></div><div class="field-hint">支持 zip/rar/exe/7z 等格式，最大 300MB</div></div>';
             } else {
                 html += '<div class="form-group"><label>' + f.label + requiredMark + '</label><input type="' + f.type + '" id="field_' + f.key + '" placeholder="' + (f.placeholder||'') + '" ' + (f.required?'required':'') + '>' + (f.type==='url'?'<div class="field-hint">请输入完整的 URL（含 https://）</div>':'') + '</div>';
             }
         });
         formFields.innerHTML = html;
+        if (type === 'driver') {
+            ['hasClient', 'hasWeb'].forEach(key => {
+                document.getElementById('field_' + key).addEventListener('change', updateDriverFields);
+            });
+            updateDriverFields();
+        }
 
         // ====== 产品详情页专属：颜色管理区域 ======
         if (config.hasColors) {
@@ -608,7 +699,7 @@
             const isDriver = btn.dataset.type === 'driver';
             btn.addEventListener('click', () => isDriver ? triggerFileUpload(btn) : triggerImageUpload(btn));
         });
-        // 【修复】绑定图片预览 — 遍历配置中的 image 类型字段，而非依赖固定 id 前缀
+        // 按字段配置绑定图片预览。
         config.fields.filter(f => f.type === 'image').forEach(f => {
             const input = document.getElementById('field_' + f.key);
             const preview = document.getElementById('preview_' + f.key);
@@ -668,79 +759,69 @@
 
     // ========== 图片上传 ==========
     function triggerImageUpload(btn) {
-        const targetId = btn.dataset.target;
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
-        document.body.appendChild(fileInput);
-        fileInput.addEventListener('change', async () => {
-            const file = fileInput.files[0];
-            if (!file) { document.body.removeChild(fileInput); return; }
-            btn.classList.add('uploading'); btn.textContent = '上传中...';
-            const formData = new FormData(); formData.append('image', file);
-            try {
-                const res = await authFetch('/api/content/upload', { method: 'POST', body: formData });
-                if (res.ok) {
-                    const data = await res.json();
-                    const urlInput = document.getElementById(targetId);
-                    if (urlInput) { urlInput.value = data.url; urlInput.dispatchEvent(new Event('input')); }
-                    btn.classList.remove('uploading'); btn.classList.add('done'); btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/上传.svg" alt="" style="vertical-align:middle;"> 已上传';
-                    setTimeout(() => { btn.classList.remove('done'); btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> 本地上传'; }, 3000);
-                    showMessage('图片上传成功！', 'success');
-                } else {
-                    let errMsg = '上传失败（状态码 ' + res.status + '）';
-                    try { const errData = await res.json(); errMsg = errData.error || errMsg; } catch(e){}
-                    // 检测常见云服务器问题
-                    if (res.status === 413) errMsg += ' — 图片可能过大，请压缩后重试，或联系运维调整 Nginx client_max_body_size';
-                    throw new Error(errMsg);
-                }
-            } catch(err) {
-                btn.classList.remove('uploading'); btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> 本地上传';
-                showMessage((err.message || '图片上传失败，请检查网络或服务器磁盘空间'), 'error');
-            }
-            document.body.removeChild(fileInput);
-        });
-        fileInput.click();
+        triggerAssetUpload(btn, false);
     }
 
     // ========== 驱动文件上传 ==========
     function triggerFileUpload(btn) {
-        const targetId = btn.dataset.target;
+        triggerAssetUpload(btn, true);
+    }
+
+    // 共用上传流程；表单切换后不再回填旧请求的结果。
+    function triggerAssetUpload(btn, isDriver) {
+        const revision = formRevision, type = currentType, targetId = btn.dataset.target;
+        const target = document.getElementById(targetId);
+        const isCurrent = () => revision === formRevision && type === currentType && document.getElementById(targetId) === target;
         const fileInput = document.createElement('input');
-        fileInput.type = 'file'; fileInput.accept = '.zip,.rar,.exe,.7z,.gz,.tar,.dmg,.pkg,.msi,.pdf'; fileInput.style.display = 'none';
+        fileInput.type = 'file';
+        fileInput.accept = isDriver ? '.zip,.rar,.exe,.7z,.gz,.tar,.dmg,.pkg,.msi,.pdf' : 'image/*';
+        fileInput.style.display = 'none';
         document.body.appendChild(fileInput);
+        fileInput.addEventListener('cancel', () => fileInput.remove());
         fileInput.addEventListener('change', async () => {
             const file = fileInput.files[0];
-            if (!file) { document.body.removeChild(fileInput); return; }
-            btn.classList.add('uploading'); btn.textContent = '上传中...';
-            const formData = new FormData(); formData.append('file', file);
+            if (!file || !isCurrent()) { fileInput.remove(); return; }
+            btn.classList.add('uploading'); btn.textContent = '上传中...'; btn.disabled = true;
+            const formData = new FormData(); formData.append(isDriver ? 'file' : 'image', file);
             try {
-                const res = await authFetch('/api/content/upload-driver', { method: 'POST', body: formData });
-                if (res.ok) {
-                    const data = await res.json();
-                    const urlInput = document.getElementById(targetId);
-                    if (urlInput) { urlInput.value = data.url; }
-                    btn.classList.remove('uploading'); btn.classList.add('done'); btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/上传.svg" alt="" style="vertical-align:middle;"> 已上传';
-                    setTimeout(() => { btn.classList.remove('done'); btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> 选择文件'; }, 5000);
-                    showMessage('驱动文件上传成功！', 'success');
-                } else {
-                    let errMsg = '上传失败';
-                    try { const errData = await res.json(); errMsg = errData.error || errMsg; } catch(e){}
-                    throw new Error(errMsg);
-                }
+                const res = await authFetch('/api/content/' + (isDriver ? 'upload-driver' : 'upload'), { method: 'POST', body: formData });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || '上传失败');
+                if (!isCurrent()) return;
+                target.value = data.url;
+                target.dispatchEvent(new Event('input'));
+                btn.classList.add('done'); btn.textContent = '已上传';
+                showMessage(isDriver ? '驱动文件上传成功！' : '图片上传成功！', 'success');
             } catch(err) {
-                btn.classList.remove('uploading'); btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> 选择文件';
-                showMessage((err.message || '文件上传失败'), 'error');
+                if (isCurrent()) {
+                    btn.textContent = isDriver ? '选择文件' : '本地上传';
+                    showMessage(err.message || '上传失败，请重试', 'error');
+                }
+            } finally {
+                fileInput.remove();
+                if (isCurrent()) {
+                    btn.classList.remove('uploading'); btn.disabled = false;
+                    if (isDriver) updateDriverFields();
+                }
             }
-            document.body.removeChild(fileInput);
         });
         fileInput.click();
     }
 
+    function resetUploadButtons() {
+        document.querySelectorAll('.upload-btn').forEach(btn => {
+            btn.classList.remove('uploading', 'done'); btn.disabled = false;
+            btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> ' + (btn.dataset.type === 'driver' ? '选择文件' : '本地上传');
+        });
+        if (currentType === 'driver') updateDriverFields();
+    }
+
     // ========== Quill 富文本编辑器管理 ==========
     let quillInstance = null;
+    let originalIntroduction = '', displayedIntroduction = '';
 
     function initQuill() {
-        // 先销毁旧实例（避免切换标签时重复初始化）
+        // 清空旧编辑区域并释放实例引用，再为当前表单初始化。
         if (quillInstance) {
             const oldContainer = document.getElementById('quillEditor');
             if (oldContainer) oldContainer.innerHTML = '';
@@ -748,6 +829,10 @@
         }
         const editorEl = document.getElementById('quillEditor');
         if (!editorEl) return;
+        if (typeof Quill === 'undefined') {
+            showMessage('介绍编辑器加载失败，请刷新后重试；原介绍会保留', 'error');
+            return;
+        }
         quillInstance = new Quill('#quillEditor', {
             theme: 'snow',
             placeholder: '请输入产品介绍文字（支持加粗、列表、链接等格式）…',
@@ -763,12 +848,16 @@
     }
 
     function getQuillContent() {
-        return quillInstance ? quillInstance.root.innerHTML : '';
+        if (!quillInstance || quillInstance.root.innerHTML === displayedIntroduction) return originalIntroduction;
+        return sanitizeRichText(quillInstance.root.innerHTML);
     }
 
     function setQuillContent(html) {
-        if (quillInstance && html) {
-            quillInstance.root.innerHTML = html;
+        originalIntroduction = html || '';
+        if (quillInstance) {
+            quillInstance.clipboard.dangerouslyPasteHTML(sanitizeRichText(originalIntroduction), 'silent');
+            quillInstance.history.clear();
+            displayedIntroduction = quillInstance.root.innerHTML;
         }
     }
 
@@ -815,6 +904,8 @@
     }
 
     function triggerColorImageUpload(btn, row) {
+        const revision = formRevision;
+        const isCurrent = () => revision === formRevision && row.isConnected;
         const fileInput = document.createElement('input');
         fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
         document.body.appendChild(fileInput);
@@ -827,6 +918,7 @@
                 const res = await authFetch('/api/content/upload', { method: 'POST', body: formData });
                 if (res.ok) {
                     const data = await res.json();
+                    if (!isCurrent()) return;
                     const imgInput = row.querySelector('.color-image-input');
                     const preview = row.querySelector('.color-preview');
                     if (imgInput) { imgInput.value = data.url; imgInput.dispatchEvent(new Event('input')); }
@@ -838,10 +930,11 @@
                     throw new Error(errMsg);
                 }
             } catch(err) {
-                showMessage('颜色图片上传失败: ' + (err.message || '网络错误'), 'error');
+                if (isCurrent()) showMessage('颜色图片上传失败: ' + (err.message || '网络错误'), 'error');
+            } finally {
+                if (isCurrent()) { btn.textContent = '📁 上传'; btn.disabled = false; }
+                fileInput.remove();
             }
-            btn.textContent = '📁 上传'; btn.disabled = false;
-            document.body.removeChild(fileInput);
         });
         fileInput.click();
     }
@@ -876,7 +969,10 @@
 
     function getFormData(type) {
         const config = FIELD_CONFIGS[type]; const data = {};
-        config.fields.forEach(f => { const el = document.getElementById('field_' + f.key); data[f.key] = el ? el.value.trim() : ''; });
+        config.fields.forEach(f => {
+            const el = document.getElementById('field_' + f.key);
+            data[f.key] = f.type === 'checkbox' ? Boolean(el && el.checked) : (el ? el.value.trim() : '');
+        });
         // 产品详情页专属：收集颜色和介绍
         if (config.hasColors) {
             data.colors = getColorsData();
@@ -888,14 +984,17 @@
     }
 
     function resetForm() {
+        formRevision++;
         const config = FIELD_CONFIGS[currentType];
-        config.fields.forEach(f => { const el = document.getElementById('field_' + f.key); if (el) el.value = ''; });
-        document.querySelectorAll('.img-preview').forEach(img => img.classList.remove('show'));
-        document.querySelectorAll('.upload-btn').forEach(btn => {
-            const isDriver = btn.dataset.type === 'driver';
-            btn.classList.remove('done');
-            btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> ' + (isDriver ? '选择文件' : '本地上传');
+        config.fields.forEach(f => {
+            const el = document.getElementById('field_' + f.key);
+            if (!el) return;
+            if (f.type === 'checkbox') el.checked = Boolean(f.defaultValue);
+            else el.value = '';
         });
+        if (currentType === 'driver') updateDriverFields();
+        document.querySelectorAll('.img-preview').forEach(img => img.classList.remove('show'));
+        resetUploadButtons();
         document.querySelectorAll('.pid-suggest').forEach(el => el.classList.remove('show'));
         const hintEl = document.getElementById('hint_productId'); if (hintEl) hintEl.style.display = 'none';
         // 清空颜色和 Quill
@@ -910,14 +1009,19 @@
 
     // ========== 列表 ==========
     async function loadList(type) {
+        if (type !== currentType) return;
+        const requestId = ++listRequestId;
         listContainer.innerHTML = '<div class="empty">加载中...</div>';
         try {
             const res = await authFetch('/api/content/' + type);
             if (!res.ok) throw new Error('加载失败');
             const data = await res.json();
+            if (requestId !== listRequestId || type !== currentType) return;
             cachedListData = data; // 缓存原始数据
             filterAndRenderList(); // 应用搜索筛选后渲染
-        } catch(err) { listContainer.innerHTML = '<div class="empty">' + err.message + '</div>'; }
+        } catch(err) {
+            if (requestId === listRequestId && type === currentType) listContainer.innerHTML = '<div class="empty">' + escapeHtml(err.message) + '</div>';
+        }
     }
 
     function renderList(items, type) {
@@ -932,7 +1036,8 @@
             } else if (type === 'driver') {
                 displayName = item.name || '未命名';
                 displayMeta = '种类: ' + (item.type || '') + ' | 型号: ' + (item.model || '未填') + ' | 版本: ' + (item.version || '无');
-                if (item.webDriverLink) displayMeta += ' | ✅ 已配置网页版驱动'; else displayMeta += ' | ⚠️ 未配置网页版驱动';
+                const availability = getDriverAvailability(item);
+                displayMeta += ' | 客户端：' + (availability.hasClient ? '启用' : '关闭') + ' | 网页端：' + (availability.hasWeb ? '启用' : '关闭');
             } else if (type === 'social') {
                 displayName = item.name || '未命名';
                 displayMeta = item.qrImage ? '已上传二维码' : '未上传二维码';
@@ -960,54 +1065,21 @@
         listContainer.innerHTML = html;
         document.getElementById('listResultCount').textContent = '共 ' + items.length + ' 条记录';
 
-        // 【编辑】点击「编辑」按钮进入编辑模式
+        // 按钮和信息区共用同一编辑流程。
         document.querySelectorAll('.edit-item-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
+            btn.addEventListener('click', e => {
                 e.stopPropagation(); // 阻止冒泡到 item
-                const id = btn.dataset.id;
-                const itemType = btn.dataset.type;
-                try {
-                    const res = await authFetch('/api/content/' + itemType + '/' + id);
-                    if (!res.ok) throw new Error('加载失败');
-                    const data = await res.json();
-                    editingId = data._id;
-                    populateForm(itemType, data);
-                    // 高亮当前编辑项
-                    document.querySelectorAll('.item').forEach(el => el.classList.remove('editing'));
-                    const itemEl = document.querySelector('.item[data-id="' + id + '"]');
-                    if (itemEl) itemEl.classList.add('editing');
-                    // 显示编辑指示器 + 更新模式标识
-                    editItemName.textContent = data.name || data.productId || '(未命名)';
-                    editIndicator.classList.add('show');
-                    submitBtnText.textContent = '更新';
-                    cancelEditBtn2.style.display = 'inline-flex';
-                    updateModeBadge('edit');
-                } catch(err) { showMessage('加载数据失败: ' + err.message, 'error'); }
+                editItem(btn.dataset.type, btn.dataset.id);
             });
         });
 
         // 点击列表项信息区也可进入编辑（保留便捷操作）
         document.querySelectorAll('.item .info').forEach(infoEl => {
             infoEl.style.cursor = 'pointer';
-            infoEl.addEventListener('click', async (e) => {
+            infoEl.addEventListener('click', () => {
                 const itemEl = infoEl.closest('.item');
                 if (!itemEl) return;
-                const id = itemEl.dataset.id;
-                const itemType = itemEl.dataset.type;
-                try {
-                    const res = await authFetch('/api/content/' + itemType + '/' + id);
-                    if (!res.ok) throw new Error('加载失败');
-                    const data = await res.json();
-                    editingId = data._id;
-                    populateForm(itemType, data);
-                    document.querySelectorAll('.item').forEach(el => el.classList.remove('editing'));
-                    itemEl.classList.add('editing');
-                    editItemName.textContent = data.name || data.productId || '(未命名)';
-                    editIndicator.classList.add('show');
-                    submitBtnText.textContent = '更新';
-                    cancelEditBtn2.style.display = 'inline-flex';
-                    updateModeBadge('edit');
-                } catch(err) { showMessage('加载数据失败: ' + err.message, 'error'); }
+                editItem(itemEl.dataset.type, itemEl.dataset.id);
             });
         });
 
@@ -1026,13 +1098,36 @@
                     const res = await authFetch('/api/content/' + t + '/' + id, { method: 'DELETE' });
                     if (res.ok) {
                         // 如果删除的是正在编辑的记录，退出编辑模式
-                        if (editingId === id) cancelEdit();
-                        showMessage('删除成功'); await loadProductMap(); loadList(t); refreshLookupTable();
+                        if (editingId === id && currentType === t) { cancelEdit(); resetForm(); }
+                        const result = await res.json();
+                        showMessage(result.message || '删除成功'); await loadProductMap(); loadList(currentType); refreshLookupTable();
                     }
                     else { const err = await res.json(); showMessage((err.error || '删除失败'), 'error'); }
                 } catch(err) { showMessage('网络错误', 'error'); }
             });
         });
+    }
+
+    async function editItem(type, id) {
+        const requestId = ++editRequestId, revision = formRevision;
+        try {
+            const res = await authFetch('/api/content/' + type + '/' + id);
+            if (!res.ok) throw new Error('加载失败');
+            const data = await res.json();
+            if (requestId !== editRequestId || type !== currentType || revision !== formRevision) return;
+            editingId = data._id;
+            populateForm(type, data);
+            document.querySelectorAll('.item').forEach(el => el.classList.remove('editing'));
+            const itemEl = document.querySelector('.item[data-id="' + id + '"]');
+            if (itemEl) itemEl.classList.add('editing');
+            editItemName.textContent = data.name || data.productId || '(未命名)';
+            editIndicator.classList.add('show');
+            submitBtnText.textContent = '更新';
+            cancelEditBtn2.style.display = 'inline-flex';
+            updateModeBadge('edit');
+        } catch(err) {
+            if (requestId === editRequestId && type === currentType && revision === formRevision) showMessage('加载数据失败: ' + err.message, 'error');
+        }
     }
 
     // ========== 搜索/筛选 + 渲染 ==========
@@ -1113,15 +1208,39 @@
         }
     }
 
+    function getDriverAvailability(data) {
+        return {
+            hasClient: typeof data.hasClient === 'boolean' ? data.hasClient : Boolean((data.file || '').trim()),
+            hasWeb: typeof data.hasWeb === 'boolean' ? data.hasWeb : Boolean((data.webDriverLink || '').trim())
+        };
+    }
+
+    function updateDriverFields() {
+        [['hasClient', 'file'], ['hasWeb', 'webDriverLink']].forEach(([flag, key]) => {
+            const toggle = document.getElementById('field_' + flag);
+            const input = document.getElementById('field_' + key);
+            if (!toggle || !input) return;
+            // 只禁用输入和上传，不清空地址，恢复开关后仍可使用原文件。
+            input.disabled = !toggle.checked;
+            input.required = toggle.checked;
+            const uploadBtn = document.querySelector('.upload-btn[data-target="field_' + key + '"]');
+            if (uploadBtn) uploadBtn.disabled = !toggle.checked || uploadBtn.classList.contains('uploading');
+        });
+    }
+
     // ========== 填充表单（编辑模式） ==========
     function populateForm(type, data) {
+        formRevision++;
         const config = FIELD_CONFIGS[type];
         if (!config) return;
+        const availability = type === 'driver' ? getDriverAvailability(data) : null;
         config.fields.forEach(f => {
             const el = document.getElementById('field_' + f.key);
             if (!el) return;
             const val = data[f.key];
-            if (f.type === 'select') {
+            if (f.type === 'checkbox') {
+                el.checked = availability ? availability[f.key] : Boolean(val);
+            } else if (f.type === 'select') {
                 el.value = val || '';
             } else {
                 el.value = val !== undefined && val !== null ? val : '';
@@ -1131,12 +1250,9 @@
                 el.dispatchEvent(new Event('input'));
             }
         });
+        if (type === 'driver') updateDriverFields();
         // 重置上传按钮状态
-        document.querySelectorAll('.upload-btn').forEach(btn => {
-            btn.classList.remove('done');
-            const isDriver = btn.dataset.type === 'driver';
-            btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> ' + (isDriver ? '选择文件' : '本地上传');
-        });
+        resetUploadButtons();
         // 产品详情页专属：回填颜色和介绍
         if (config.hasColors) setColorsData(data.colors || []);
         if (config.hasIntroduction) setQuillContent(data.introduction || '');
@@ -1144,6 +1260,8 @@
 
     // ========== 取消编辑 ==========
     function cancelEdit() {
+        editRequestId++;
+        formRevision++;
         editingId = null;
         editIndicator.classList.remove('show');
         editItemName.textContent = '';
@@ -1151,11 +1269,7 @@
         cancelEditBtn2.style.display = 'none';
         updateModeBadge('create');
         document.querySelectorAll('.item').forEach(el => el.classList.remove('editing'));
-        document.querySelectorAll('.upload-btn').forEach(btn => {
-            btn.classList.remove('done');
-            const isDriver = btn.dataset.type === 'driver';
-            btn.innerHTML = '<img class="admin-icon" src="../Pictures/admin_components/本地文件夹.svg" alt="" style="vertical-align:middle;"> ' + (isDriver ? '选择文件' : '本地上传');
-        });
+        resetUploadButtons();
         // 清理颜色和 Quill
         const config = FIELD_CONFIGS[currentType];
         if (config && config.hasColors) clearColors();
@@ -1163,8 +1277,7 @@
     }
 
     function escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div'); div.textContent = text; return div.innerHTML;
+        return escapeHTML(text);
     }
 
     // ========== 提交 ==========
@@ -1173,40 +1286,62 @@
         const data = getFormData(currentType);
         const config = FIELD_CONFIGS[currentType];
         for (const f of config.fields) { if (f.required && !data[f.key]) { showMessage('请填写必填项：' + f.label, 'error'); return; } }
-        // 【新增】提交前二次确认小轮播关键字段
+        if (currentType === 'driver') {
+            if (data.hasClient && !data.file) {
+                showMessage('提供客户端时必须上传驱动文件', 'error');
+                return;
+            }
+            if (data.hasWeb) {
+                try {
+                    const url = new URL(data.webDriverLink);
+                    if (!['http:', 'https:'].includes(url.protocol)) throw new Error('无效协议');
+                } catch (_) {
+                    showMessage('提供网页端时必须填写有效的 http:// 或 https:// 链接', 'error');
+                    return;
+                }
+            }
+        }
+        // 提交前校验小轮播关键字段。
         if (currentType === 'home-mini-carousel') {
             if (!data.bgImage || !data.fgImage) {
                 showMessage('小轮播需要同时上传「底层背景素材」和「上层产品素材」两张图片', 'error');
                 return;
             }
         }
+        const submitType = currentType, submitId = editingId, revision = formRevision;
+        const isCurrent = () => submitType === currentType && submitId === editingId && revision === formRevision;
+        document.getElementById('submitBtn').disabled = true;
         try {
-            let url = '/api/content/' + currentType;
+            let url = '/api/content/' + submitType;
             let method = 'POST';
-            if (editingId) {
-                url += '/' + editingId;
+            if (submitId) {
+                url += '/' + submitId;
                 method = 'PUT';
             }
             const res = await authFetch(url, {
                 method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
             });
             if (res.ok) {
-                showMessage(config.label + (editingId ? ' 更新成功！' : ' 上传成功！'));
-                cancelEdit(); // 退出编辑模式
-                resetForm(); await loadProductMap(); loadList(currentType); refreshLookupTable();
+                showMessage(config.label + (submitId ? ' 更新成功！' : ' 上传成功！'));
+                if (isCurrent()) { cancelEdit(); resetForm(); }
+                await loadProductMap(); loadList(currentType); refreshLookupTable();
             } else {
                 const err = await res.json();
                 let errMsg = err.error || '未知错误';
                 if (errMsg.includes('ValidationError') || errMsg.includes('字段验证失败')) {
                     errMsg = '数据验证失败：' + errMsg + ' — 请检查所有必填字段是否已填写';
                 }
-                showMessage((editingId ? '更新' : '上传') + '失败: ' + errMsg, 'error');
+                if (isCurrent()) showMessage((submitId ? '更新' : '上传') + '失败: ' + errMsg, 'error');
             }
-        } catch(err) { showMessage('网络请求失败', 'error'); }
+        } catch(err) { if (isCurrent()) showMessage('网络请求失败', 'error'); }
+        finally { document.getElementById('submitBtn').disabled = false; }
     });
 
     tabContainer.addEventListener('click', e => { const btn = e.target.closest('.tab-btn'); if (btn) switchTab(btn.dataset.type); });
-    refreshBtn.addEventListener('click', () => loadList(currentType));
+    refreshBtn.addEventListener('click', () => {
+        loadList(currentType);
+        if (currentType === 'home-mini-carousel') loadMiniCarouselSettings();
+    });
 
     // 取消编辑按钮
     cancelEditBtn.addEventListener('click', () => { cancelEdit(); resetForm(); });

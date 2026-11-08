@@ -200,24 +200,8 @@
 
 <script src="common.js"></script>
 <script>
-  // ========== 兜底数据（API 不可用时使用） ==========
-  const PRODUCTS_FALLBACK = [
-    { pid:"H71",  img:"Pictures/白底图/H71键盘.png",      links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"H71键盘",     name_tw:"H71鍵盤",     name_en:"H71" },
-    { pid:"S6",   img:"Pictures/白底图/S6音响.png",       links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"S6 音箱",     name_tw:"S6 音箱",     name_en:"S6 Speaker" },
-    { pid:"S9",   img:"Pictures/白底图/S9音响.png",       links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"S9 音箱",     name_tw:"S9 音箱",     name_en:"S9 Speaker" },
-    { pid:"H75",  img:"Pictures/白底图/H75键盘.png",      links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"H75键盘",     name_tw:"H75鍵盤",     name_en:"H75" },
-    { pid:"H81",  img:"Pictures/白底图/H81键盘.png",      links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"H81键盘",     name_tw:"H81鍵盤",     name_en:"H81" },
-    { pid:"H98",  img:"Pictures/白底图/H98键盘.png",      links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"H98键盘",     name_tw:"H98鍵盤",     name_en:"H98" },
-    { pid:"H102", img:"Pictures/白底图/102键盘.png",      links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"H102键盘",    name_tw:"H102鍵盤",    name_en:"H102" },
-    { pid:"CD",   img:"Pictures/白底图/CD机.png",         links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"科曼者CD机",  name_tw:"科曼者CD機",  name_en:"KOOMZE CD Player" },
-    { pid:"K1",   img:"Pictures/白底图/K1头戴式耳机.png",  links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"K1 耳机",     name_tw:"K1 耳機",     name_en:"K1 Headset" },
-    { pid:"75",   img:"Pictures/白底图/75键盘.png",       links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"75键盘",      name_tw:"75鍵盤",      name_en:"75 Keyboard" },
-    { pid:"K9pAI",img:"Pictures/白底图/K9＋AI款.png",     links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"K9pAI 耳机",  name_tw:"K9pAI 耳機",  name_en:"K9pAI Headset" },
-    { pid:"M7",   img:"Pictures/白底图/M7鼠标.png",       links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"M7 鼠标",     name_tw:"M7 滑鼠",     name_en:"M7 Mouse" },
-    { pid:"C25",  img:"Pictures/白底图/CCD相机.png",      links:{taobao:"#",jd:"#",douyin:"#"}, name_zh:"C25 相机",     name_tw:"C25 相機",     name_en:"C25 Camera" }
-  ];
-
   let product = null;
+  let detailLoadFailed = false;
   let productNameMap = {};
   let currentColorIndex = 0;
   const urlParams = new URLSearchParams(window.location.search);
@@ -227,13 +211,15 @@
     return productNameMap[pid] || fallback || pid || '未知产品';
   }
 
-  // ⚡ 从 API 拉产品详情 — 按 productId 精确筛选，仅返回一条数据
+  // 按 productId 筛选详情；区分不存在与请求失败。
   async function fetchDetailFromAPI(pid) {
     try {
       const res = await fetch('/api/content/product-detail?productId=' + encodeURIComponent(pid));
-      if (!res.ok) return null;
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      if (!data || data.length === 0) return null;
+      if (!Array.isArray(data)) throw new Error('产品详情格式错误');
+      detailLoadFailed = false;
+      if (data.length === 0) return null;
       const item = data[0];
       return {
         id: item.productId, pid: item.productId,
@@ -246,13 +232,13 @@
           douyin: item.buyLink3 || '#'
         }
       };
-    } catch (e) { return null; }
+    } catch (e) { detailLoadFailed = true; return null; }
   }
 
   function loadProduct() {
     if (!product) {
       document.querySelector('.container').innerHTML =
-        '<p style="text-align:center;padding:60px;"><span class="lang-zh">产品不存在</span><span class="lang-tw">產品不存在</span><span class="lang-en">Product not found</span></p>' +
+        '<p role="status" style="text-align:center;padding:60px;">' + (detailLoadFailed ? contentStateHTML(true) : '<span class="lang-zh">产品不存在</span><span class="lang-tw">產品不存在</span><span class="lang-en">Product not found</span>') + '</p>' +
         '<p style="text-align:center;"><a href="Main.html"><span class="lang-zh">返回首页</span><span class="lang-tw">返回首頁</span><span class="lang-en">Back to Home</span></a></p>';
       return false;
     }
@@ -294,19 +280,9 @@
     });
   }
 
-  // 富文本消毒：剔除脚本/内联事件，仅保留安全的展示标签与属性
+  // 前台与后台共用相同的编辑器格式白名单。
   function sanitizeHTML(html) {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    doc.querySelectorAll('script,style,iframe,object,embed,link,meta,form').forEach(el => el.remove());
-    doc.querySelectorAll('*').forEach(el => {
-      Array.prototype.forEach.call(el.attributes, attr => {
-        const n = attr.name.toLowerCase(), v = (attr.value || '').trim().toLowerCase();
-        if (n.indexOf('on') === 0 || ((n === 'href' || n === 'src') && v.indexOf('javascript:') === 0)) {
-          el.removeAttribute(attr.name);
-        }
-      });
-    });
-    return doc.body.innerHTML;
+    return sanitizeRichText(html);
   }
 
   function updateContent() {
@@ -339,7 +315,8 @@
     platforms.forEach(p => {
       const el = document.getElementById(p.id);
       if (el) {
-        if (p.href && p.href !== '#') { el.href = p.href; el.style.display = 'flex'; hasLink = true; }
+        const href = p.href !== '#' ? safeWebURL(p.href) : '';
+        if (href) { el.href = href; el.style.display = 'flex'; hasLink = true; }
         else { el.style.display = 'none'; }
       }
     });
@@ -370,6 +347,7 @@
   }
 
   async function init() {
+    initCommon(function() { if (product) updateContent(); });
     if (!rawId) {
       document.querySelector('.container').innerHTML =
         '<p style="text-align:center;padding:60px;"><span class="lang-zh">缺少产品 ID 参数</span><span class="lang-tw">缺少產品 ID 參數</span><span class="lang-en">Missing product ID</span></p>' +
@@ -396,13 +374,11 @@
       detailData.name_zh = detailData.name_tw = detailData.name_en = name;
       product = detailData;
     } else {
-      // API 无数据，用兜底数据
-      product = PRODUCTS_FALLBACK.find(p => String(p.pid) === String(rawId)) || null;
+      product = null;
     }
 
-    if (!loadProduct()) { hideLoader(); return; }
+    if (!loadProduct()) { initDynamicNav(products); initFooterSocial(); hideLoader(); return; }
 
-    initCommon(function() { updateContent(); });
     updateContent();
     initBuyPopup();
 

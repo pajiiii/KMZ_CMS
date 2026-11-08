@@ -35,9 +35,6 @@ initializeTheme();
 // ------------------- HANDLING KEY PRESS -------------------
 
 const handleKeyPress = function (e) {
-  console.log(e);
-
-  e.preventDefault();
 
   // Edge case mentioned in https://github.com/Mostafa-Abbasi/KeyboardTester/issues/4
   // Detect AltGr key press (Alt + Control pressed simultaneously)
@@ -45,16 +42,14 @@ const handleKeyPress = function (e) {
 
   // Ignore the left Control key if AltGr is pressed
   if (isAltGr) {
-    document
-      .querySelector('.' + 'controlleft')
-      .classList.remove('key-pressing-simulation');
-
-    document
-      .querySelector('.' + 'controlleft')
-      .classList.remove('key--pressed');
+    const controlLeft = document.querySelector('.controlleft');
+    if (controlLeft) controlLeft.classList.remove('key-pressing-simulation', 'key--pressed');
   }
 
+  if (!e.code) return;
   const keyElement = document.querySelector('.' + e.code.toLowerCase());
+  if (!keyElement) return;
+  e.preventDefault();
 
   if (e.type === 'keydown') {
     keyElement.classList.add('key-pressing-simulation');
@@ -74,6 +69,10 @@ const handleKeyPress = function (e) {
 
 document.addEventListener('keydown', handleKeyPress);
 document.addEventListener('keyup', handleKeyPress);
+// 切换窗口时可能收不到 keyup，清除持续按下效果，保留已测试标记。
+window.addEventListener('blur', () => {
+  document.querySelectorAll('.key-pressing-simulation').forEach(key => key.classList.remove('key-pressing-simulation'));
+});
 
 // --------------------- CHANGING LAYOUT ---------------------
 

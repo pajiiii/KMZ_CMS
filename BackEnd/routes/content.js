@@ -12,22 +12,36 @@ const Product = require('../models/Product');
 const Driver = require('../models/Driver');
 const SocialPlatform = require('../models/SocialPlatform');
 
-// ===== 内存缓存（5 分钟 TTL，大幅减少数据库重复查询） =====
+// ===== 内存缓存：5 分钟有效期，最多 200 个查询结果 =====
 const apiCache = new Map();
+const cacheVersions = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_MAX_ENTRIES = 200;
+
+function pruneCache() {
+  const now = Date.now();
+  for (const [key, entry] of apiCache) {
+    if (now - entry.ts >= CACHE_TTL_MS) apiCache.delete(key);
+  }
+}
 
 function getCache(key) {
+  pruneCache();
   const entry = apiCache.get(key);
   if (!entry) return null;
   if (Date.now() - entry.ts > CACHE_TTL_MS) { apiCache.delete(key); return null; }
   return entry.data;
 }
 function setCache(key, data) {
+  pruneCache();
+  apiCache.delete(key);
+  while (apiCache.size >= CACHE_MAX_ENTRIES) apiCache.delete(apiCache.keys().next().value);
   apiCache.set(key, { data, ts: Date.now() });
 }
 // 数据变更时清除对应类型的所有缓存
 function clearCache(type) {
-  const prefix = '/api/content/' + type;
+  cacheVersions.set(type, (cacheVersions.get(type) || 0) + 1);
+  const prefix = '/api/content/' + type + '?';
   let count = 0;
   for (const key of apiCache.keys()) {
     if (key.startsWith(prefix)) { apiCache.delete(key); count++; }
@@ -38,8 +52,11 @@ function clearCache(type) {
 async function cachedFind(Model, cacheKey, filter = {}, sort = { order: 1, createdAt: -1 }) {
   const cached = getCache(cacheKey);
   if (cached !== null) { console.log('[Cache] ⚡ 命中:', cacheKey); return cached; }
+  const type = cacheKey.split('?')[0].slice('/api/content/'.length);
+  const version = cacheVersions.get(type) || 0;
   const data = await Model.find(filter).sort(sort);
-  setCache(cacheKey, data);
+  // 写操作期间发出的旧查询不能重新填入已经失效的缓存。
+  if ((cacheVersions.get(type) || 0) === version) setCache(cacheKey, data);
   console.log('[Cache] 💾 写入:', cacheKey, '(' + data.length + ' 条)');
   return data;
 }
@@ -135,6 +152,32 @@ const collections = {
   'social': SocialPlatform
 };
 
+// 小轮播区域总开关，必须先于 /:type/:id 注册。
+router.get('/home-mini-carousel/settings', async (req, res) => {
+  try {
+    const settings = await HomeMiniCarousel.Settings.findById('global').lean();
+    res.json({ enabled: settings?.enabled === true });
+  } catch (err) {
+    console.error('[MiniCarousel] 读取显示设置失败:', err.message);
+    res.status(500).json({ error: '读取小轮播显示设置失败' });
+  }
+});
+
+router.put('/home-mini-carousel/settings', async (req, res) => {
+  if (typeof req.body?.enabled !== 'boolean') {
+    return res.status(400).json({ error: '显示设置必须为布尔值' });
+  }
+  try {
+    const settings = await HomeMiniCarousel.Settings.findByIdAndUpdate('global', {
+      $set: { enabled: req.body.enabled }
+    }, { upsert: true, returnDocument: 'after', runValidators: true, setDefaultsOnInsert: true });
+    res.json({ enabled: settings.enabled === true });
+  } catch (err) {
+    console.error('[MiniCarousel] 保存显示设置失败:', err.message);
+    res.status(500).json({ error: '保存小轮播显示设置失败' });
+  }
+});
+
 // ===== 产品名称查询（供 admin 对照表 + 前端页面使用） =====
 // ⚠️ 必须放在 GET /:type/:id 前面，避免 /products/search 被 /:type/:id 抢先匹配
 
@@ -194,8 +237,8 @@ router.get('/:type', async (req, res) => {
       filter.productId = req.query.productId;
     }
 
-    // 缓存键：类型 + 查询参数
-    const cacheKey = '/api/content/' + req.params.type + '?' + new URLSearchParams(req.query).toString();
+    // 只使用实际生效的筛选条件，忽略无关参数，避免制造重复缓存。
+    const cacheKey = '/api/content/' + req.params.type + '?' + JSON.stringify(filter);
     const data = await cachedFind(Model, cacheKey, filter);
     console.log('[Content] GET /' + req.params.type + ' 返回 ' + data.length + ' 条');
     res.json(data);
@@ -226,22 +269,25 @@ router.post('/:type', async (req, res) => {
   }
 });
 
-// ===== 辅助函数：递归提取文档中所有 /uploads/ 开头的文件路径 =====
+// 提取字符串、数组、嵌套对象及富文本中的上传文件引用，统一为本地路径。
 function getUploadPaths(doc) {
   if (!doc) return [];
   const paths = [];
   const docObj = doc.toObject ? doc.toObject() : doc;
 
   function collect(obj) {
-    if (!obj || typeof obj !== 'object') return;
-    for (const val of Object.values(obj)) {
-      if (typeof val === 'string' && val.startsWith('/uploads/')) {
-        paths.push(val);
-      } else if (Array.isArray(val)) {
-        val.forEach(item => collect(item));
-      } else if (typeof val === 'object' && val !== null) {
-        collect(val);
+    if (typeof obj === 'string') {
+      for (const match of obj.matchAll(/\/uploads\/[^?#\s"'<>\\)]+/gi)) {
+        try {
+          const normalized = path.posix.normalize(decodeURIComponent(match[0]).replace(/\\/g, '/'));
+          if (normalized.slice(0, '/uploads/'.length).toLowerCase() !== '/uploads/') continue;
+          const filename = normalized.slice('/uploads/'.length);
+          if (!filename || filename === '.' || filename === '..' || /[\/\\\x00]/.test(filename)) continue;
+          paths.push('/uploads/' + filename);
+        } catch (_) { /* 无法确认的路径不参与自动删除 */ }
       }
+    } else if (obj && typeof obj === 'object') {
+      Object.values(obj).forEach(collect);
     }
   }
 
@@ -249,23 +295,40 @@ function getUploadPaths(doc) {
   return [...new Set(paths)]; // 去重
 }
 
-// ===== 辅助函数：从磁盘删除文件 =====
-function deleteUploadedFiles(filePaths) {
-  const uploadDir = path.join(__dirname, '..', 'uploads');
+// 记录已删除后，检查所有内容集合；任一查询失败时保留全部候选文件。
+async function deleteUploadedFiles(filePaths) {
+  const referenced = new Set();
+  try {
+    for (const Model of Object.values(collections)) {
+      const docs = await Model.find({}).lean();
+      // 大小写差异也保守视为引用，兼容 Windows 文件系统。
+      docs.forEach(doc => getUploadPaths(doc).forEach(url => referenced.add(url.toLowerCase())));
+    }
+  } catch (err) {
+    console.error('[Cleanup] 引用检查失败，保留文件:', err.message);
+    return { cleanedFiles: 0, cleanupPending: true };
+  }
+  const uploadRoot = path.resolve(__dirname, '..', 'uploads');
+  let cleanedFiles = 0, cleanupPending = false;
   for (const urlPath of filePaths) {
+    if (referenced.has(urlPath.toLowerCase())) continue;
     const filename = path.basename(urlPath);
-    const fullPath = path.join(uploadDir, filename);
+    const fullPath = path.resolve(uploadRoot, filename);
+    if (path.dirname(fullPath) !== uploadRoot) continue;
     try {
       if (fs.existsSync(fullPath)) {
         fs.unlinkSync(fullPath);
+        cleanedFiles++;
         console.log('[Cleanup] 🗑️ 已删除磁盘文件:', filename);
       } else {
         console.log('[Cleanup] ⚠️ 文件不存在，跳过:', filename);
       }
     } catch (err) {
+      cleanupPending = true;
       console.error('[Cleanup] ❌ 删除文件失败:', filename, err.message);
     }
   }
+  return { cleanedFiles, cleanupPending };
 }
 
 // 删除指定类型的数据（同时清理关联的上传文件）
@@ -273,21 +336,15 @@ router.delete('/:type/:id', async (req, res) => {
   const Model = collections[req.params.type];
   if (!Model) return res.status(400).json({ error: '无效的数据类型' });
   try {
-    // 先查找记录，获取文件路径后再删除
-    const doc = await Model.findById(req.params.id);
+    // 先成功删除数据库记录并取得原文档，避免数据库失败时已经删掉文件。
+    const doc = await Model.findByIdAndDelete(req.params.id);
     if (!doc) return res.status(404).json({ error: '未找到' });
 
-    // 清理关联的 /uploads/ 文件
+    clearCache(req.params.type);
+    // 仅清理这条记录涉及且其他记录已不再引用的文件。
     const uploadPaths = getUploadPaths(doc);
-    if (uploadPaths.length > 0) {
-      console.log('[Content] DELETE 清理 ' + uploadPaths.length + ' 个文件:', uploadPaths);
-      deleteUploadedFiles(uploadPaths);
-    }
-
-    // 删除数据库记录
-    await Model.findByIdAndDelete(req.params.id);
-    clearCache(req.params.type); // 数据变更，清除缓存
-    res.json({ message: '删除成功', cleanedFiles: uploadPaths.length });
+    const cleanup = uploadPaths.length ? await deleteUploadedFiles(uploadPaths) : { cleanedFiles: 0, cleanupPending: false };
+    res.json({ message: cleanup.cleanupPending ? '记录已删除，部分文件保留待清理' : '删除成功', ...cleanup });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -298,10 +355,19 @@ router.put('/:type/:id', async (req, res) => {
   const Model = collections[req.params.type];
   if (!Model) return res.status(400).json({ error: '无效的数据类型' });
   try {
-    const updated = await Model.findByIdAndUpdate(req.params.id, req.body, {
-      returnDocument: 'after',
-      runValidators: true
-    });
+    let updated;
+    if (req.params.type === 'driver') {
+      // 合并已有记录后执行文档校验，确保开关和地址一起验证（也支持部分更新）。
+      updated = await Model.findById(req.params.id);
+      if (!updated) return res.status(404).json({ error: '未找到' });
+      updated.set(req.body);
+      await updated.save();
+    } else {
+      updated = await Model.findByIdAndUpdate(req.params.id, req.body, {
+        returnDocument: 'after',
+        runValidators: true
+      });
+    }
     if (!updated) return res.status(404).json({ error: '未找到' });
     clearCache(req.params.type); // 数据变更，清除缓存
     console.log('[Content] PUT /' + req.params.type + '/' + req.params.id + ' 更新成功');

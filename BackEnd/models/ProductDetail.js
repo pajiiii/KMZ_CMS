@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const ColorVariantSchema = new mongoose.Schema({
   name: { type: String, required: true },   // 颜色名称，如"星空黑"
   image: { type: String, required: true }   // 该颜色对应的产品图片 URL
-}, { _id: true });  // 保留 _id 便于前端精准删除/编辑
+}, { _id: true });  // Mongoose 子文档 ID；当前后台按完整颜色列表保存。
 
 const ProductDetailSchema = new mongoose.Schema({
   productId: { type: String, required: true, unique: true },

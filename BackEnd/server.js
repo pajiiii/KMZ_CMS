@@ -6,6 +6,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const crypto = require('crypto');
+const path = require('path');
 
 // ===== 路由引入 =====
 const contentRoutes = require('./routes/content');    // 内容管理（产品/轮播/标签/详情/驱动/社交）
@@ -50,14 +51,21 @@ function authGuard(req, res, next) {
   console.log(`[AuthGuard] 收到请求: ${req.method} ${req.path}`);
   // 检查是否需要保护：管理页面 + API 写操作
   // GET 请求公开（前台页面需要读取数据展示），POST/PUT/DELETE 需认证
-  const isApiContent = req.path.startsWith('/api/content');
-  const isAdminPath = req.path === '/admin.html' || req.path.startsWith('/admin');
+  let requestPath;
+  try {
+    requestPath = path.posix.normalize(decodeURIComponent(req.path).replace(/\\/g, '/')).replace(/\/+$/, '').toLowerCase() || '/';
+  } catch (_) {
+    return res.status(400).json({ error: '无效的请求路径' });
+  }
+  const isApiContent = requestPath === '/api/content' || requestPath.startsWith('/api/content/');
+  const isAdminPath = requestPath.startsWith('/admin');
+  const isAuthAction = requestPath === '/api/auth/check' || requestPath === '/api/auth/logout';
 
   if (isApiContent && req.method === 'GET') {
     return next(); // 前台页面读取内容，不需要认证
   }
 
-  const needsAuth = isAdminPath || isApiContent;
+  const needsAuth = isAdminPath || isApiContent || isAuthAction;
 
   if (!needsAuth) {
     return next();
@@ -71,7 +79,7 @@ function authGuard(req, res, next) {
     if (eqIdx > 0) {
       const key = pair.substring(0, eqIdx).trim();
       const val = pair.substring(eqIdx + 1).trim();
-      cookies[key] = decodeURIComponent(val);
+      try { cookies[key] = decodeURIComponent(val); } catch (_) { /* 忽略损坏的 Cookie */ }
     }
   });
 
@@ -110,8 +118,7 @@ function authGuard(req, res, next) {
     return res.status(401).json({ error: '令牌无效，请重新登录', needLogin: true });
   }
 
-  // ---- 方式三：HTTP Basic Auth（仅在登录接口 /api/auth/login 中使用，不再触发浏览器弹窗） ----
-  // 此分支保留仅为兼容直接携带 Authorization 头的旧请求
+  // ---- 方式三：兼容旧请求直接携带的 Basic Auth，不触发浏览器原生弹窗 ----
   if (authHeader.startsWith('Basic ')) {
     try {
       const base64 = authHeader.slice(6);
@@ -189,7 +196,7 @@ try {
   });
   if (res.ok) {
     const data = await res.json();
-    // 存储令牌到 sessionStorage（关闭标签页即清除，实现"每次打开都需登录"）
+    // 标签页存储用于 AJAX；页面导航还可通过会话 Cookie 认证，令牌有效期为 24 小时。
     sessionStorage.setItem('admin_token', data.token);
     // 跳转到管理页面
     window.location.href = '/admin.html';
@@ -243,7 +250,7 @@ app.post('/api/auth/login', (req, res) => {
     if (username === 'admin' && password === ADMIN_PASSWORD) {
       const token = generateToken();
       tokenStore.set(token, { username, createdAt: Date.now() });
-      // 🔑 设置 HttpOnly 会话 Cookie（关闭浏览器后自动清除 → 下次打开需重新登录）
+      // HttpOnly 会话 Cookie；浏览器可能恢复会话，服务器仍检查 24 小时有效期。
       res.setHeader('Set-Cookie', `admin_token=${token}; Path=/; HttpOnly; SameSite=Lax`);
       console.log(`[Login] ✅ 登录成功 | 用户: ${username} | IP: ${req.ip} | 令牌: ${token.substring(0, 8)}... | 当前有效令牌数: ${tokenStore.size}`);
       return res.json({ token, message: '登录成功' });
@@ -285,7 +292,7 @@ app.post('/api/auth/logout', authGuard, (req, res) => {
 app.get('/api/auth/check', authGuard, (req, res) => {
   res.json({ valid: true, user: req.adminUser });
 });
-// ===== 🔐 认证中间件 — 以下所有路由都需要认证 =====
+// ===== 按路径保护后台、认证检查和内容写操作；前台与内容 GET 公开 =====
 app.use(authGuard);
 // ===== 公开静态资源（不需要认证） =====
 // 前台网站页面 — 公开
@@ -295,16 +302,17 @@ app.use('/uploads', express.static(__dirname + '/uploads'));
 // 图片文件夹 — 公开
 app.use('/pictures', express.static(__dirname + '/../KOOMZE/Pictures'));
 
-// ===== 受保护的静态资源和管理页面 =====
-// 管理后台（admin.html 等）— 受 authGuard 保护
-app.use(express.static(__dirname));
+// 只提供管理页面，不把后端源码、模型及依赖作为静态资源发布。
+app.get('/admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
 
-// 访问根路径 → 跳转管理页（受 authGuard 保护）
+// 访问根路径 → 公开首页
 app.get('/', (req, res) => {
   res.redirect('/Main.html');
 });
 
-// ===== 受保护的 API 路由 =====
+// ===== 内容 API：GET 公开，写操作已由 authGuard 认证 =====
 app.use('/api/content', contentRoutes);
 
 // ===== 数据库连接 + 启动服务器 =====
