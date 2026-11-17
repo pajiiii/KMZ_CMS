@@ -28,6 +28,7 @@
         .carousel-slide:hover img { transform: scale(1.02); }
         .carousel-overlay {
             position: absolute; inset: 0; display: flex; flex-direction: column;
+            bottom: auto; height: var(--carousel-overlay-height, 100%);
             justify-content: flex-end; padding: 36px 34px 40px;
             background: linear-gradient(180deg, transparent 42%, rgba(8, 9, 13, 0.82) 94%);
             opacity: 1; transform: translateY(0);
@@ -802,12 +803,38 @@
         });
     }
 
+    function updateCarouselOverlayHeight() {
+        const slide = document.querySelector('.carousel-slide');
+        if (!slide) return;
+        const rect = slide.getBoundingClientRect();
+        const viewport = window.visualViewport;
+        const viewportBottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
+        // 文字跟随可视区域下缘，图片底部进入视口后停在原设计位置。
+        const height = Math.max(0, Math.min(rect.height, viewportBottom - rect.top));
+        document.getElementById('carouselWindow').style.setProperty('--carousel-overlay-height', `${height}px`);
+    }
+
     function initCarouselResize() {
+        updateCarouselOverlayHeight();
         if (carouselResizeInitialized) return;
         carouselResizeInitialized = true;
+        let overlayFrame = null;
+        const scheduleOverlayUpdate = () => {
+            if (overlayFrame !== null) return;
+            overlayFrame = requestAnimationFrame(() => {
+                overlayFrame = null;
+                updateCarouselOverlayHeight();
+            });
+        };
+        window.addEventListener('scroll', scheduleOverlayUpdate, { passive: true });
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', scheduleOverlayUpdate);
+            window.visualViewport.addEventListener('scroll', scheduleOverlayUpdate, { passive: true });
+        }
         window.addEventListener('resize', () => {
             updateCarouselSlideWidth();
             setCarouselPosition(currentSlideIndex, false);
+            scheduleOverlayUpdate();
         });
     }
 
