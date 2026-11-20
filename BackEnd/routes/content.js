@@ -56,8 +56,10 @@ async function cachedFind(Model, cacheKey, filter = {}, sort = { order: 1, creat
   const version = cacheVersions.get(type) || 0;
   const data = await Model.find(filter).sort(sort);
   // 写操作期间发出的旧查询不能重新填入已经失效的缓存。
-  if ((cacheVersions.get(type) || 0) === version) setCache(cacheKey, data);
-  console.log('[Cache] 💾 写入:', cacheKey, '(' + data.length + ' 条)');
+  if ((cacheVersions.get(type) || 0) === version) {
+    setCache(cacheKey, data);
+    console.log('[Cache] 💾 写入:', cacheKey, '(' + data.length + ' 条)');
+  }
   return data;
 }
 
@@ -152,6 +154,14 @@ const collections = {
   'social': SocialPlatform
 };
 
+const productAssociations = [HomeCarousel, HomeTag, HomeMiniCarousel, ProductTag, ProductDetail];
+
+async function hasProductAssociations(productId) {
+  if (!productId) return false;
+  const matches = await Promise.all(productAssociations.map(Model => Model.exists({ productId })));
+  return matches.some(Boolean);
+}
+
 // 小轮播区域总开关，必须先于 /:type/:id 注册。
 router.get('/home-mini-carousel/settings', async (req, res) => {
   try {
@@ -184,12 +194,15 @@ router.put('/home-mini-carousel/settings', async (req, res) => {
 // 按 productId 或 name 搜索产品
 router.get('/products/search', async (req, res) => {
   const { q, id } = req.query;
+  if ((q !== undefined && typeof q !== 'string') || (id !== undefined && typeof id !== 'string')) {
+    return res.status(400).json({ error: '搜索参数必须为文本' });
+  }
   try {
     let filter = {};
     if (id) {
       filter.productId = id;
     } else if (q) {
-      const regex = new RegExp(q, 'i');
+      const regex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       filter = { $or: [{ productId: regex }, { name: regex }] };
     }
     const data = await Product.find(filter).sort({ productId: 1 });
@@ -269,17 +282,20 @@ router.post('/:type', async (req, res) => {
   }
 });
 
-// 提取字符串、数组、嵌套对象及富文本中的上传文件引用，统一为本地路径。
-function getUploadPaths(doc) {
+// 引用检查额外识别相对地址。删除候选仍沿用原来的路径范围。
+function getUploadPaths(doc, { includeRelative = false } = {}) {
   if (!doc) return [];
   const paths = [];
   const docObj = doc.toObject ? doc.toObject() : doc;
 
   function collect(obj) {
     if (typeof obj === 'string') {
-      for (const match of obj.matchAll(/\/uploads\/[^?#\s"'<>\\)]+/gi)) {
+      for (const match of obj.matchAll(/(?:\/|^|(?<=[\s"'<>=(]))uploads\/[^?#\s"'<>\\)]+/gi)) {
         try {
-          const normalized = path.posix.normalize(decodeURIComponent(match[0]).replace(/\\/g, '/'));
+          const hasLeadingSlash = match[0].startsWith('/');
+          if (!hasLeadingSlash && !includeRelative) continue;
+          const urlPath = hasLeadingSlash ? match[0] : '/' + match[0];
+          const normalized = path.posix.normalize(decodeURIComponent(urlPath).replace(/\\/g, '/'));
           if (normalized.slice(0, '/uploads/'.length).toLowerCase() !== '/uploads/') continue;
           const filename = normalized.slice('/uploads/'.length);
           if (!filename || filename === '.' || filename === '..' || /[\/\\\x00]/.test(filename)) continue;
@@ -302,7 +318,9 @@ async function deleteUploadedFiles(filePaths) {
     for (const Model of Object.values(collections)) {
       const docs = await Model.find({}).lean();
       // 大小写差异也保守视为引用，兼容 Windows 文件系统。
-      docs.forEach(doc => getUploadPaths(doc).forEach(url => referenced.add(url.toLowerCase())));
+      docs.forEach(doc => {
+        for (const url of getUploadPaths(doc, { includeRelative: true })) referenced.add(url.toLowerCase());
+      });
     }
   } catch (err) {
     console.error('[Cleanup] 引用检查失败，保留文件:', err.message);
@@ -337,7 +355,18 @@ router.delete('/:type/:id', async (req, res) => {
   if (!Model) return res.status(400).json({ error: '无效的数据类型' });
   try {
     // 先成功删除数据库记录并取得原文档，避免数据库失败时已经删掉文件。
-    const doc = await Model.findByIdAndDelete(req.params.id);
+    let doc;
+    if (Model === Product) {
+      const product = await Product.findById(req.params.id);
+      if (!product) return res.status(404).json({ error: '未找到' });
+      if (await hasProductAssociations(product.productId)) {
+        return res.status(409).json({ error: '该产品仍被详情、轮播或标签引用，请先解除关联再删除' });
+      }
+      doc = await Product.findOneAndDelete({ _id: product._id, productId: product.productId });
+      if (!doc) return res.status(409).json({ error: '产品已变更，请刷新后重试' });
+    } else {
+      doc = await Model.findByIdAndDelete(req.params.id);
+    }
     if (!doc) return res.status(404).json({ error: '未找到' });
 
     clearCache(req.params.type);
@@ -356,7 +385,27 @@ router.put('/:type/:id', async (req, res) => {
   if (!Model) return res.status(400).json({ error: '无效的数据类型' });
   try {
     let updated;
-    if (req.params.type === 'driver') {
+    if (Model === Product) {
+      const data = req.body;
+      if (!data || Array.isArray(data) || typeof data !== 'object' || Object.keys(data).some(key => key.startsWith('$') || key.includes('.'))) {
+        return res.status(400).json({ error: '请提交普通产品字段' });
+      }
+      const product = await Product.findById(req.params.id);
+      if (!product) return res.status(404).json({ error: '未找到' });
+      if (Object.hasOwn(data, 'productId')) {
+        if (typeof data.productId !== 'string' || !data.productId.trim()) {
+          return res.status(400).json({ error: '产品 ID 不能为空' });
+        }
+        if (data.productId !== product.productId && await hasProductAssociations(product.productId)) {
+          return res.status(409).json({ error: '该产品仍被详情、轮播或标签引用，请先解除关联再更改产品 ID' });
+        }
+      }
+      updated = await Product.findOneAndUpdate({ _id: product._id, productId: product.productId }, { $set: data }, {
+        returnDocument: 'after',
+        runValidators: true
+      });
+      if (!updated) return res.status(409).json({ error: '产品已变更，请刷新后重试' });
+    } else if (req.params.type === 'driver') {
       // 合并已有记录后执行文档校验，确保开关和地址一起验证（也支持部分更新）。
       updated = await Model.findById(req.params.id);
       if (!updated) return res.status(404).json({ error: '未找到' });

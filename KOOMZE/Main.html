@@ -76,16 +76,21 @@
         .feature-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
         .feature-card {
             position: relative; display: block; overflow: hidden; border-radius: 0;
-            min-height: 260px; border: 1px solid var(--border); background: var(--card);
+            aspect-ratio: 1; min-height: 260px;
+            border: 1px solid var(--border); background: #eceef1;
         }
-        .feature-card img {
+        .feature-card-image {
+            position: absolute; inset: 0; opacity: 0;
             width: 100%; height: 100%; object-fit: cover; display: block;
-            transition: transform 0.5s ease;
+            transition: opacity 0.25s ease, transform 0.5s ease;
         }
-        .feature-card:hover img { transform: scale(1.05); }
+        .feature-card[data-image-state="loaded"] .feature-card-image { opacity: 1; }
+        .feature-card:hover .feature-card-image { transform: scale(1.05); }
         .feature-card-overlay {
             position: absolute; inset: 0; display: flex; flex-direction: column;
             justify-content: flex-start; align-items: center; padding: 5% 20px 20px; pointer-events: none;
+        }
+        .feature-card[data-image-state="loaded"] .feature-card-overlay {
             background: linear-gradient(180deg, transparent 35%, rgba(8,9,13,0.9) 100%);
         }
         .feature-title {
@@ -106,6 +111,15 @@
         }
         .feature-card-btn img { width: 17px; height: 17px; object-fit: contain; filter: brightness(0) invert(1); }
         .feature-card-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+        .feature-card:not([data-image-state="loaded"]) :is(.feature-title, .feature-card-btn) {
+            color: var(--text); text-shadow: none;
+        }
+        .feature-card:not([data-image-state="loaded"]) .feature-card-btn img { filter: none; }
+        .feature-card-image-status {
+            display: none; position: absolute; top: 50%; transform: translateY(-50%);
+            color: var(--text2); font-size: 0.875rem;
+        }
+        .feature-card[data-image-state="error"] .feature-card-image-status { display: block; }
 
         /* ========== Main Page — Mini Carousel (产品穿出卡片) ========== */
         .mini-carousel-section {
@@ -266,6 +280,10 @@
         .feature-card:nth-child(3){animation-delay:0.15s} .feature-card:nth-child(4){animation-delay:0.2s}
         .feature-card:nth-child(5){animation-delay:0.25s} .feature-card:nth-child(6){animation-delay:0.3s}
         .feature-card:nth-child(7){animation-delay:0.35s} .feature-card:nth-child(8){animation-delay:0.4s}
+        @media (prefers-reduced-motion: reduce) {
+            .feature-card { animation: none; }
+            .feature-card-image { transition: none; }
+        }
     </style>
 </head>
 <body>
@@ -373,13 +391,14 @@
     }
 
     // 初始化所有数据
-    async function initData() {
+    async function initData(isCurrent) {
         // ⚡ 并行获取：轮播 + 标签 + 产品列表
         const [carouselData, featuresData, products] = await Promise.all([
             fetchFromAPI('/api/content/home-carousel'),
             fetchFromAPI('/api/content/home-tag'),
             fetchProducts()  // 复用 common.js 的缓存 fetch
         ]);
+        if (!isCurrent()) return;
         buildProductNameMap(products);
 
         // 轮播数据
@@ -397,18 +416,7 @@
         }
         CAROUSEL_REAL_SLIDE_COUNT = CAROUSEL_ITEMS.length;
 
-        // 产品卡片数据
-        if (Array.isArray(featuresData)) {
-            renderFeatureCards(featuresData.map(item => ({
-                pid: item.productId, img: item.image,
-                title: resolveName(item, ''),
-                description: item.description || ''
-            })));
-        } else {
-            renderFeatureCards([], true);
-        }
-
-        return products; // 返回给调用方，传给 initDynamicNav
+        return { products, featuresData };
     }
 
     // 渲染产品卡片区域（feature grid）
@@ -420,24 +428,43 @@
             return;
         }
         grid.innerHTML = items.map((item, i) => {
-            const img = escapeHTML(item.img || item.image || '');
+            const img = escapeHTML((item.img || '').trim());
             const title = escapeHTML(item.title || '');
-            const rawTitle = item.title || '';
-            const pid = item.pid || item.productId || '';
+            const pid = item.pid || '';
             const desc = escapeHTML(item.description || '');
             const link = 'product-detail.html?id=' + encodeURIComponent(pid);
             const delay = (i * 0.05).toFixed(2);
             const descHTML = desc ? `<span style="display:block;font-size:0.55em;font-weight:400;opacity:0.7;margin-top:2px;">${desc}</span>` : '';
             return `
-                <a class="feature-card" href="${link}" style="animation-delay:${delay}s">
-                    <img src="${img}" alt="${title}" onerror="this.src='https://placehold.co/600x600/12141d/e8e9f0?text=${encodeURIComponent(rawTitle)}'">
+                <a class="feature-card" href="${link}" style="animation-delay:${delay}s" data-image-state="loading">
+                    <img class="feature-card-image" data-src="${img}" alt="">
                     <div class="feature-card-overlay">
                         <span class="feature-title">${title}${descHTML}</span>
+                        <span class="feature-card-image-status"><span class="lang-zh">图片暂不可用</span><span class="lang-tw">圖片暫不可用</span><span class="lang-en">Image unavailable</span></span>
                         <span class="feature-card-btn"><img src="Pictures/components/查看.svg" alt="">查看详情</span>
                     </div>
                 </a>
             `;
         }).join('');
+
+        const viewportHeight = window.innerHeight;
+        // 先读取布局，再为首屏与下方图片设置加载方式。
+        const images = Array.from(grid.querySelectorAll('.feature-card-image'), image => {
+            const { top, bottom } = image.parentElement.getBoundingClientRect();
+            return { image, inViewport: top < viewportHeight && bottom > 0 };
+        });
+        images.forEach(({ image, inViewport }) => {
+            const card = image.parentElement;
+            const url = image.dataset.src;
+            if (!url) {
+                card.dataset.imageState = 'error';
+                return;
+            }
+            image.addEventListener('load', () => { card.dataset.imageState = 'loaded'; }, { once: true });
+            image.addEventListener('error', () => { card.dataset.imageState = 'error'; }, { once: true });
+            image.loading = inViewport ? 'eager' : 'lazy';
+            image.src = url;
+        });
     }
 
     // ========== 小型叠加轮播（产品穿出卡片效果） ==========
@@ -647,8 +674,9 @@
 
     let miniCarouselEventsInitialized = false;
 
-    async function initMiniCarousel() {
+    async function initMiniCarousel(isCurrent) {
         const data = await fetchMiniCarousel();
+        if (!isCurrent()) return;
         const items = data ? data.sort((a, b) => (a.order || 0) - (b.order || 0)) : null;
         renderMiniCarousel(items || []);
         if (items && items.length > 0) {
@@ -838,16 +866,29 @@
         });
     }
 
+    let homeRefreshId = 0;
+
     async function refreshUI() {
-        const products = await initData();  // 拉数据 + 返回产品列表
+        const refreshId = ++homeRefreshId;
+        const isCurrent = () => refreshId === homeRefreshId;
+        const data = await initData(isCurrent);
+        if (!isCurrent()) return;
         renderCarousel();
         initCarouselIndicators();
         initCarouselTransitionReset();
         initCarouselResize();
         updateCarouselState(0);
         startCarouselAutoScroll();
-        await initMiniCarousel();
-        return products; // 传给 initDynamicNav
+        const { products, featuresData } = data;
+        const cards = Array.isArray(featuresData) ? featuresData.map(item => ({
+            pid: item.productId,
+            img: item.image,
+            title: resolveName(item, ''),
+            description: item.description || ''
+        })) : [];
+        renderFeatureCards(cards, !Array.isArray(featuresData));
+        initDynamicNav(products);
+        await initMiniCarousel(isCurrent);
     }
 
     function initScrollEffect() {
@@ -859,10 +900,8 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
         // initCommon 回调仅在切换语言时触发
-        initCommon(function() { refreshUI().then(p => initDynamicNav(p)); });
-        const products = await refreshUI();
-        // ⚡ 传入已获取的产品数据，避免导航重复请求
-        initDynamicNav(products);
+        initCommon(refreshUI);
+        await refreshUI();
         initFooterSocial();
         initScrollEffect();
 

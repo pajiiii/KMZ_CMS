@@ -541,7 +541,9 @@
     let currentType = 'product';
     let editingId = null; // 正在编辑的记录 _id，null 表示新建模式
     let cachedListData = []; // 缓存当前列表数据，用于搜索/筛选
+    let cachedListType = null;
     let listRequestId = 0, editRequestId = 0, formRevision = 0;
+    let lookupRequestId = 0;
     let miniCarouselEnabled = false, miniCarouselSettingsLoaded = false;
     let miniCarouselSettingsLoading = false, miniCarouselSettingsSaving = false, miniCarouselSettingsRequestId = 0;
 
@@ -1011,13 +1013,17 @@
     async function loadList(type) {
         if (type !== currentType) return;
         const requestId = ++listRequestId;
+        cachedListType = null;
+        document.getElementById('listResultCount').textContent = '';
         listContainer.innerHTML = '<div class="empty">加载中...</div>';
         try {
             const res = await authFetch('/api/content/' + type);
             if (!res.ok) throw new Error('加载失败');
             const data = await res.json();
             if (requestId !== listRequestId || type !== currentType) return;
+            if (!Array.isArray(data)) throw new Error('列表数据格式错误');
             cachedListData = data; // 缓存原始数据
+            cachedListType = type;
             filterAndRenderList(); // 应用搜索筛选后渲染
         } catch(err) {
             if (requestId === listRequestId && type === currentType) listContainer.innerHTML = '<div class="empty">' + escapeHtml(err.message) + '</div>';
@@ -1100,7 +1106,7 @@
                         // 如果删除的是正在编辑的记录，退出编辑模式
                         if (editingId === id && currentType === t) { cancelEdit(); resetForm(); }
                         const result = await res.json();
-                        showMessage(result.message || '删除成功'); await loadProductMap(); loadList(currentType); refreshLookupTable();
+                        showMessage(result.message || '删除成功'); await loadProductMap(); loadList(currentType); refreshLookupTable(lookupInput.value.trim());
                     }
                     else { const err = await res.json(); showMessage((err.error || '删除失败'), 'error'); }
                 } catch(err) { showMessage('网络错误', 'error'); }
@@ -1132,6 +1138,7 @@
 
     // ========== 搜索/筛选 + 渲染 ==========
     function filterAndRenderList() {
+        if (cachedListType !== currentType) return;
         const searchQuery = (document.getElementById('listSearchInput')?.value || '').trim().toLowerCase();
         const filterType = document.getElementById('listFilterSelect')?.value || 'all';
 
@@ -1283,6 +1290,11 @@
     // ========== 提交 ==========
     uploadForm.addEventListener('submit', async e => {
         e.preventDefault();
+        if (uploadForm.inert) return;
+        if (uploadForm.querySelector('.upload-btn.uploading, .color-upload-btn:disabled')) {
+            showMessage('请等文件上传完成后再保存', 'error');
+            return;
+        }
         const data = getFormData(currentType);
         const config = FIELD_CONFIGS[currentType];
         for (const f of config.fields) { if (f.required && !data[f.key]) { showMessage('请填写必填项：' + f.label, 'error'); return; } }
@@ -1310,7 +1322,10 @@
         }
         const submitType = currentType, submitId = editingId, revision = formRevision;
         const isCurrent = () => submitType === currentType && submitId === editingId && revision === formRevision;
-        document.getElementById('submitBtn').disabled = true;
+        const submitButton = document.getElementById('submitBtn');
+        uploadForm.inert = true;
+        uploadForm.setAttribute('aria-busy', 'true');
+        submitButton.disabled = true;
         try {
             let url = '/api/content/' + submitType;
             let method = 'POST';
@@ -1324,7 +1339,7 @@
             if (res.ok) {
                 showMessage(config.label + (submitId ? ' 更新成功！' : ' 上传成功！'));
                 if (isCurrent()) { cancelEdit(); resetForm(); }
-                await loadProductMap(); loadList(currentType); refreshLookupTable();
+                await loadProductMap(); loadList(currentType); refreshLookupTable(lookupInput.value.trim());
             } else {
                 const err = await res.json();
                 let errMsg = err.error || '未知错误';
@@ -1334,7 +1349,11 @@
                 if (isCurrent()) showMessage((submitId ? '更新' : '上传') + '失败: ' + errMsg, 'error');
             }
         } catch(err) { if (isCurrent()) showMessage('网络请求失败', 'error'); }
-        finally { document.getElementById('submitBtn').disabled = false; }
+        finally {
+            uploadForm.inert = false;
+            uploadForm.removeAttribute('aria-busy');
+            submitButton.disabled = false;
+        }
     });
 
     tabContainer.addEventListener('click', e => { const btn = e.target.closest('.tab-btn'); if (btn) switchTab(btn.dataset.type); });
@@ -1369,15 +1388,21 @@
     }
 
     async function searchLookup(query) {
+        const requestId = ++lookupRequestId;
         lookupBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#6a6c7a;">搜索中...</td></tr>';
         try {
             const res = await authFetch('/api/content/products/search?q=' + encodeURIComponent(query));
-            if (res.ok) { const data = await res.json(); renderLookupTable(data); }
-        } catch(e) { lookupBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#e74c3c;">搜索失败</td></tr>'; }
+            if (!res.ok) throw new Error('搜索失败');
+            const data = await res.json();
+            if (requestId === lookupRequestId) renderLookupTable(data);
+        } catch(e) {
+            if (requestId === lookupRequestId) lookupBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#e74c3c;">搜索失败</td></tr>';
+        }
     }
 
     function refreshLookupTable(query) {
         if (query) { searchLookup(query); return; }
+        ++lookupRequestId;
         const products = Object.entries(productMap).map(([id, info]) => ({ productId: id, name: info.name, category: info.category }));
         products.sort((a, b) => a.productId.localeCompare(b.productId));
         renderLookupTable(products);

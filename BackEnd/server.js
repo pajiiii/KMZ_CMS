@@ -13,7 +13,9 @@ const contentRoutes = require('./routes/content');    // 内容管理（产品/�
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'koomze2024';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const adminPasswordConfigured = Boolean(ADMIN_PASSWORD?.trim());
+if (!adminPasswordConfigured) console.warn('[Auth] 未配置 ADMIN_PASSWORD，后台登录和写入不可用');
 
 // ===== 令牌认证系统（替代纯 Basic Auth，解决浏览器缓存 + HTTP 屏蔽问题） =====
 // 内存存储有效令牌：token → { username, createdAt }
@@ -69,6 +71,12 @@ function authGuard(req, res, next) {
 
   if (!needsAuth) {
     return next();
+  }
+
+  if (!adminPasswordConfigured) {
+    const message = '后台未配置管理员密码，请联系服务器管理员';
+    if (isAdminPath) return res.status(503).send(message);
+    return res.status(503).json({ error: message });
   }
 
   // ---- 解析 Cookie（手动解析，无需额外依赖） ----
@@ -230,6 +238,9 @@ app.use((req, res, next) => {
 // ===== 认证相关 API（必须在 authGuard 之前注册，因为登录不需要认证） =====
 // 登录接口：验证 Basic Auth 后颁发令牌（无需 authGuard，公开访问）
 app.post('/api/auth/login', (req, res) => {
+  if (!adminPasswordConfigured) {
+    return res.status(503).json({ error: '后台未配置管理员密码，请联系服务器管理员' });
+  }
   const authHeader = req.headers.authorization || '';
   if (!authHeader.startsWith('Basic ')) {
     console.log(`[Login] 缺少 Basic Auth 头 | IP: ${req.ip}`);
